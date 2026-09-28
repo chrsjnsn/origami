@@ -1,0 +1,27 @@
+{
+  "name": "origami1829-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Browser viewer and customization studio for the Origami 1829 paper sculpture.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepare-assets": "node tools/prepare-assets.mjs",
+    "verify-assets": "node tools/verify-assets.mjs",
+    "verify-blender": "node tools/verify-blender-roundtrip.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/three": "^0.186.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  }
+}

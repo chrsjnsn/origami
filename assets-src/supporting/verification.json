@@ -1,0 +1,42 @@
+{
+  "outer_count": 522,
+  "inner_count": 522,
+  "scale": 0.75,
+  "maximum_scale_error_mm": 0,
+  "maximum_diagonal_midpoint_error_mm": 2.634178031930877e-06,
+  "maximum_outer_geometry_error_mm": 0.00013333208984265686,
+  "board_border_mm_left_right_bottom_top": [
+    50.80002546310425,
+    50.79996585845947,
+    50.79997703433037,
+    50.79996585845947
+  ],
+  "source_hash_unchanged": true,
+  "reopened_saved_scene": "/Users/chris/Documents/origami/output/final-vision/origami1829-final-vision.blend",
+  "xy_revision": "v2",
+  "cross_file_outer_coordinate_difference_mm": 0,
+  "all_inner_meshes_rebuilt_from_current_refined_outers": true,
+  "rendered_views": {
+    "front": {
+      "pixels": [
+        2200,
+        1650
+      ],
+      "visually_inspected": true
+    },
+    "angle": {
+      "pixels": [
+        2200,
+        1650
+      ],
+      "visually_inspected": true
+    },
+    "detail": {
+      "pixels": [
+        1800,
+        1500
+      ],
+      "visually_inspected": true
+    }
+  }
+}

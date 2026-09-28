@@ -1,0 +1,390 @@
+{
+  "renderLook": {
+    "viewTransform": "Standard",
+    "exposure": -0.800000011920929,
+    "engine": "CYCLES"
+  },
+  "materials": {
+    "outer": {
+      "name": "Matte black dyed cardboard",
+      "principled": {
+        "Base Color": [
+          0.006048833020031452,
+          0.006995410192757845,
+          0.00802319310605526,
+          1.0
+        ],
+        "Metallic": 0.0,
+        "Roughness": 0.8799999952316284,
+        "IOR": 1.5,
+        "Specular IOR Level": 0.2199999988079071,
+        "Coat Weight": 0.0,
+        "Sheen Weight": 0.0
+      },
+      "noise": {
+        "type": "FBM",
+        "dimensions": "3D",
+        "scale_per_m": 4800.0,
+        "detail": 2.5,
+        "roughness": 0.7200000286102295,
+        "lacunarity": 2.0
+      },
+      "bump": {
+        "strength": 0.23999999463558197,
+        "distance_m": 7.500000356230885e-05
+      },
+      "ramp": [
+        {
+          "position": 0.17000000178813934,
+          "linear_rgb": [
+            0.004476136527955532,
+            0.005176603328436613,
+            0.005937162786722183
+          ]
+        },
+        {
+          "position": 0.8299999833106995,
+          "linear_rgb": [
+            0.007077134680002928,
+            0.008184629492461681,
+            0.00938713550567627
+          ]
+        }
+      ]
+    },
+    "inner": {
+      "name": "Vibrant message blue paper - sRGB 007AFF",
+      "principled": {
+        "Base Color": [
+          0.0,
+          0.1946178376674652,
+          1.0,
+          1.0
+        ],
+        "Metallic": 0.0,
+        "Roughness": 0.7200000286102295,
+        "IOR": 1.5,
+        "Specular IOR Level": 0.2199999988079071,
+        "Coat Weight": 0.0,
+        "Sheen Weight": 0.0
+      },
+      "noise": {
+        "type": "FBM",
+        "dimensions": "3D",
+        "scale_per_m": 4800.0,
+        "detail": 2.5,
+        "roughness": 0.7200000286102295,
+        "lacunarity": 2.0
+      },
+      "bump": {
+        "strength": 0.11999999731779099,
+        "distance_m": 7.500000356230885e-05
+      },
+      "ramp": [
+        {
+          "position": 0.17000000178813934,
+          "linear_rgb": [
+            0.0,
+            0.14401718974113464,
+            0.7400000095367432
+          ]
+        },
+        {
+          "position": 0.8299999833106995,
+          "linear_rgb": [
+            0.0,
+            0.22770285606384277,
+            1.1699999570846558
+          ]
+        }
+      ]
+    },
+    "board": "Matte black dyed cardboard",
+    "backdrop": {
+      "name": "Warm neutral studio surface",
+      "principled": {
+        "Base Color": [
+          0.25999999046325684,
+          0.2800000011920929,
+          0.30000001192092896,
+          1.0
+        ],
+        "Metallic": 0.0,
+        "Roughness": 0.9100000262260437,
+        "IOR": 1.5,
+        "Specular IOR Level": 0.5,
+        "Coat Weight": 0.0,
+        "Sheen Weight": 0.0
+      }
+    }
+  },
+  "modifiers": {
+    "outer": [
+      {
+        "name": "Paper thickness - presentation only",
+        "type": "SOLIDIFY",
+        "thickness_mm": 0.44999999227002263,
+        "offset": 1.0,
+        "use_even_offset": false,
+        "use_rim": true,
+        "solidify_mode": "EXTRUDE",
+        "nonmanifold_thickness_mode": "CONSTRAINTS",
+        "use_quality_normals": false
+      },
+      {
+        "name": "Soft paper edges - presentation only",
+        "type": "BEVEL",
+        "width_mm": 0.05500000042957254,
+        "segments": 2,
+        "limit_method": "ANGLE",
+        "angle_limit_rad": 0.5235987901687622,
+        "offset_type": "OFFSET",
+        "profile": 0.5,
+        "use_clamp_overlap": true
+      }
+    ],
+    "inner": [
+      {
+        "name": "Paper thickness - presentation only",
+        "type": "SOLIDIFY",
+        "thickness_mm": 0.2500000118743628,
+        "offset": -1.0,
+        "use_even_offset": false,
+        "use_rim": true,
+        "solidify_mode": "EXTRUDE",
+        "nonmanifold_thickness_mode": "CONSTRAINTS",
+        "use_quality_normals": false
+      },
+      {
+        "name": "Soft paper edges - presentation only",
+        "type": "BEVEL",
+        "width_mm": 0.05500000042957254,
+        "segments": 2,
+        "limit_method": "ANGLE",
+        "angle_limit_rad": 0.5235987901687622,
+        "offset_type": "OFFSET",
+        "profile": 0.5,
+        "use_clamp_overlap": true
+      }
+    ]
+  },
+  "board": {
+    "widthMm": 1575.9515762329102,
+    "heightMm": 1040.555477142334,
+    "thicknessMm": 6.000000052154064,
+    "center": [
+      725.0769734382629,
+      450.12181997299194
+    ],
+    "topZMm": -0.5499999970197678,
+    "boundsMm": [
+      [
+        -62.89881467819214,
+        -70.15591859817505,
+        -6.550000049173832
+      ],
+      [
+        1513.052761554718,
+        970.3995585441589,
+        -0.5499999970197678
+      ]
+    ],
+    "evaluatedBoundsMm": [
+      [
+        -62.89881467819214,
+        -70.15591859817505,
+        -6.550000049173832
+      ],
+      [
+        1513.0527019500732,
+        970.3995585441589,
+        -0.5499999970197678
+      ]
+    ],
+    "bevel": [
+      {
+        "name": "Slightly softened board edge",
+        "type": "BEVEL",
+        "width_mm": 0.6000000284984708,
+        "segments": 3,
+        "limit_method": "ANGLE",
+        "angle_limit_rad": 0.5235987901687622,
+        "offset_type": "OFFSET",
+        "profile": 0.5,
+        "use_clamp_overlap": true
+      }
+    ],
+    "material": "Matte black dyed cardboard"
+  },
+  "backdropZMm": -6.800000090152025,
+  "world": {
+    "color": [
+      0.7200000286102295,
+      0.7900000214576721,
+      0.9100000262260437
+    ],
+    "strength": 0.25
+  },
+  "cameras": [
+    {
+      "name": "01 Front - full artwork",
+      "type": "ORTHO",
+      "orthoScaleMm": 1764.749526977539,
+      "lensMm": 50.0,
+      "sensorWidthMm": 36.0,
+      "positionMm": [
+        725.2106070518494,
+        449.5927095413208,
+        3000.0
+      ],
+      "forward": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "up": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "targetOnBoardMm": [
+        725.2106070518494,
+        449.5927095413208,
+        0.0
+      ]
+    },
+    {
+      "name": "02 Angled - full artwork",
+      "type": "ORTHO",
+      "orthoScaleMm": 1890.8030986785889,
+      "lensMm": 50.0,
+      "sensorWidthMm": 36.0,
+      "positionMm": [
+        1175.2105951309204,
+        -450.4072964191437,
+        2400.0000953674316
+      ],
+      "forward": [
+        -0.17415061593055725,
+        0.3483012914657593,
+        -0.9210633635520935
+      ],
+      "up": [
+        0.06470877677202225,
+        0.9373826384544373,
+        0.34223759174346924
+      ],
+      "targetOnBoardMm": [
+        721.4291095733643,
+        457.1557939052582,
+        0.0
+      ]
+    },
+    {
+      "name": "03 Open faces - detail",
+      "type": "ORTHO",
+      "orthoScaleMm": 490.00000953674316,
+      "lensMm": 50.0,
+      "sensorWidthMm": 36.0,
+      "positionMm": [
+        1325.2105712890625,
+        999.5927214622498,
+        949.999988079071
+      ],
+      "forward": [
+        -0.4869646430015564,
+        -0.44638437032699585,
+        -0.7507373690605164
+      ],
+      "up": [
+        -0.24291840195655823,
+        0.8948413729667664,
+        -0.37449923157691956
+      ],
+      "targetOnBoardMm": [
+        708.9945077896118,
+        434.72784757614136,
+        -5.9604644775390625e-05
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "Edge light",
+      "type": "AREA",
+      "shape": "DISK",
+      "sizeMm": 1200.0000476837158,
+      "energyW": 85.0,
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionMm": [
+        925.2105951309204,
+        2049.5927333831787,
+        1000.0
+      ],
+      "direction": [
+        -0.1059938371181488,
+        -0.8479506373405457,
+        -0.5193698406219482
+      ]
+    },
+    {
+      "name": "Large softbox - key",
+      "type": "AREA",
+      "shape": "DISK",
+      "sizeMm": 1700.0000476837158,
+      "energyW": 170.0,
+      "color": [
+        1.0,
+        0.949999988079071,
+        0.8799999952316284
+      ],
+      "positionMm": [
+        -74.7893899679184,
+        949.5927095413208,
+        2200.000047683716
+      ],
+      "direction": [
+        0.33678919076919556,
+        -0.2104930877685547,
+        -0.917750358581543
+      ]
+    },
+    {
+      "name": "Softbox - fill",
+      "type": "AREA",
+      "shape": "DISK",
+      "sizeMm": 1600.000023841858,
+      "energyW": 105.0,
+      "color": [
+        0.8199999928474426,
+        0.8999999761581421,
+        1.0
+      ],
+      "positionMm": [
+        2125.2105236053467,
+        -350.40727257728577,
+        1700.0000476837158
+      ],
+      "direction": [
+        -0.6012184619903564,
+        0.3435533046722412,
+        -0.7214620113372803
+      ]
+    }
+  ],
+  "grainTexture": {
+    "size_px": 512,
+    "tile_mm": 20.48,
+    "mm_per_px": 0.04,
+    "seed": 1829,
+    "albedo_factor_range": [
+      0.632,
+      1.0
+    ],
+    "method": "Tileable FFT band-pass fBm approximating Blender FBM noise (scale 4800/m, detail 2.5, roughness 0.72); albedo factor follows the 0.17-0.83 color ramp. The same texture drives the bump map in the browser."
+  }
+}
