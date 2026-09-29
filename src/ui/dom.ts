@@ -33,14 +33,6 @@ export function paintRange(input: HTMLInputElement): void {
   input.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
 }
 
-export function setSegmented(group: HTMLElement, value: string): void {
-  for (const b of $$<HTMLButtonElement>('button', group)) b.setAttribute('aria-checked', String(b.dataset.value === value));
-}
-
-export function setPressed(buttons: HTMLElement[], predicate: (b: HTMLElement) => boolean): void {
-  for (const b of buttons) b.setAttribute('aria-pressed', String(predicate(b)));
-}
-
 let toastTimer = 0;
 export function toast(message: string, ms = 2200): void {
   const el = document.getElementById('toast');
@@ -64,13 +56,4 @@ export function confirmDialog(title: string, body: string, ok = 'OK', cancel: st
     dialog.returnValue = '';
     dialog.showModal();
   });
-}
-
-export function fmtMm(v: number, digits = 1): string {
-  return `${v.toFixed(digits)} mm`;
-}
-
-export function isTyping(e: Event): boolean {
-  const t = e.target as HTMLElement | null;
-  return !!t && (t.tagName === 'INPUT' && (t as HTMLInputElement).type === 'text' || t.tagName === 'TEXTAREA' || t.isContentEditable);
 }

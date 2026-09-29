@@ -11,6 +11,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import type { BoardSettings } from '../core/board';
+import type { PaperColors } from '../core/look';
 import type { Sculpture } from '../core/sculpture';
 import { findCamera, findLight, type Presentation } from './presentation';
 import { ShellMesh } from './shellMesh';
@@ -46,7 +47,6 @@ export const DEFAULT_LIGHTING: Lighting = {
   aoRadius: 80,
   backdrop: 1,
 };
-export type InteractionMode = 'view' | 'handles' | 'paint';
 
 interface CameraPose {
   position: THREE.Vector3;
@@ -56,16 +56,29 @@ interface CameraPose {
 
 const linear = (r: number, g: number, b: number) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
 
+/**
+ * Paper colors are chosen as sRGB hex (the Principled Base Color in Blender). The Blender color
+ * ramp spans 0.74x to 1.17x of that color, and the baked grain multiplies the upper stop by
+ * 0.632-1.0, so the material color is the base color times 1.17 (as in Blender, the upper stop
+ * may exceed 1; the grain brings the average reflectance back below 1).
+ */
+export const PAPER_GAIN = 1.17;
+
+function paperColor(hex: string, out = new THREE.Color()): THREE.Color {
+  out.set(hex); // sRGB hex -> linear working color
+  return out.multiplyScalar(PAPER_GAIN);
+}
+
 export class Viewer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
-  readonly overlayScene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
   readonly controls: OrbitControls;
   readonly outer: ShellMesh;
   readonly inner: ShellMesh;
   readonly outerMaterial: THREE.MeshPhysicalMaterial;
   readonly innerMaterial: THREE.MeshPhysicalMaterial;
+  readonly boardMaterial: THREE.MeshPhysicalMaterial;
   private board!: THREE.Mesh;
   private boardSettings!: BoardSettings;
   readonly keyLight: THREE.DirectionalLight;
@@ -73,20 +86,16 @@ export class Viewer {
   private tween: { from: CameraPose; to: CameraPose; t0: number; ms: number } | null = null;
   private frameHooks = new Set<(t: number, dt: number) => void>();
   private lastFrame = performance.now();
-  private readonly raycaster = new THREE.Raycaster();
-  private readonly plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   private resizeObserver: ResizeObserver;
-  private gizmo: AxisGizmo;
-  showGizmo = false;
-  overlaysVisible = true;
+  private lastSize = { w: 0, h: 0 };
   /** Rolling frame-time statistics (ms) for the performance readout. */
   readonly stats = { frames: 0, renderMs: 0, frameMs: 0 };
   private initialView: ViewName = 'front';
   /** Last named view, re-applied after a resize unless the user has moved the camera since. */
   private currentView: ViewName | null = 'front';
   private reframeTimer = 0;
-  /** Screen space (CSS px) covered by page UI at the top and bottom of the viewer. */
-  viewInsets = { top: 0, bottom: 0 };
+  /** Screen space (CSS px) covered by page UI on each side of the viewer. */
+  private insets = { top: 0, bottom: 0, left: 0, right: 0 };
   private lights: { key: THREE.DirectionalLight; fill: THREE.DirectionalLight; edge: THREE.DirectionalLight };
   lighting: Lighting = { ...DEFAULT_LIGHTING };
   private composer: EffectComposer;
@@ -94,27 +103,30 @@ export class Viewer {
   private backdrop: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
   /** 'high' / 'medium' = ambient occlusion on (half resolution), 'low' = no AO. */
   quality: 'high' | 'medium' | 'low';
-  /** Dynamic resolution: current and maximum pixel ratio. */
+  /**
+   * Fixed pixel ratio. It is only ever lowered (at most twice) if continuous rendering stays
+   * very slow; it never oscillates, because every change reallocates the render targets.
+   */
   private pixelRatio: number;
-  private readonly maxPixelRatio: number;
   private readonly minPixelRatio: number;
   private intervals: number[] = [];
   private renderedLastFrame = false;
+  private downgrades = 0;
   private lastQualityChange = 0;
 
   constructor(
     private readonly container: HTMLElement,
-    private readonly sculpture: Sculpture,
+    sculpture: Sculpture,
     private readonly presentation: Presentation,
     grain: THREE.Texture,
   ) {
     const coarse = matchMedia('(pointer: coarse)').matches;
     this.quality = coarse ? 'medium' : 'high';
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-    // 1.5x with 4x MSAA is visually crisp; dynamic resolution lowers it if frames run slow.
-    this.maxPixelRatio = Math.min(devicePixelRatio, 1.5);
-    this.minPixelRatio = Math.min(this.maxPixelRatio, coarse ? 0.75 : 1);
-    this.pixelRatio = this.maxPixelRatio;
+    // Desktop: 1.5x with 4x MSAA is crisp at a moderate GPU cost. Phones have small, very dense
+    // screens, so they render at 2x (the pixel count is still well below a desktop window).
+    this.pixelRatio = Math.min(devicePixelRatio, coarse ? 2 : 1.5);
+    this.minPixelRatio = Math.min(this.pixelRatio, coarse ? 1.5 : 1);
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // Linear tone mapping with exposure behaves like Blender's "Standard" view transform:
@@ -158,6 +170,9 @@ export class Viewer {
       envMapIntensity: 1,
     });
 
+    this.boardMaterial = this.outerMaterial.clone();
+    this.boardMaterial.name = 'Backing board';
+
     // ---------------------------------------------------------------- shells
     const p = sculpture.data.presentation;
     const tile = presentation.grainTexture.tile_mm;
@@ -187,8 +202,9 @@ export class Viewer {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.gtao = new GTAOPass(this.scene, this.camera, 1, 1);
     this.gtao.output = GTAOPass.OUTPUT.Default;
-    this.gtao.updateGtaoMaterial({ radius: 80, distanceExponent: 1, thickness: 40, scale: 2, samples: 16, distanceFallOff: 1, screenSpaceRadius: false });
-    this.gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+    const aoSamples = coarse ? 8 : 16;
+    this.gtao.updateGtaoMaterial({ radius: 80, distanceExponent: 1, thickness: 40, scale: 2, samples: aoSamples, distanceFallOff: 1, screenSpaceRadius: false });
+    this.gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: aoSamples });
     this.composer.addPass(this.gtao);
     this.composer.addPass(new OutputPass());
 
@@ -198,19 +214,18 @@ export class Viewer {
     this.controls.dampingFactor = 0.09;
     this.controls.screenSpacePanning = true;
     this.controls.minDistance = 110;
-    this.controls.maxDistance = 7000;
+    this.controls.maxDistance = 16000; // portrait phones need a distant camera to frame the whole board
     this.controls.minAzimuthAngle = -1.35;
     this.controls.maxAzimuthAngle = 1.35;
     this.controls.minPolarAngle = 0.18;
     this.controls.maxPolarAngle = Math.PI - 0.18;
     this.controls.zoomToCursor = true;
+    this.controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     this.controls.addEventListener('change', () => (this.needsRender = true));
     this.controls.addEventListener('start', () => {
       this.tween = null;
       this.currentView = null;
     });
-
-    this.gizmo = new AxisGizmo();
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
@@ -271,7 +286,8 @@ export class Viewer {
 
     key.castShadow = true;
     const s = key.shadow;
-    s.mapSize.set(4096, 4096);
+    const size = matchMedia('(pointer: coarse)').matches ? 2048 : 4096;
+    s.mapSize.set(size, size);
     s.radius = 5;
     s.bias = -0.0002;
     s.normalBias = 0.35;
@@ -329,12 +345,20 @@ export class Viewer {
       else if (ax >= ay) uv.setXY(i, y / tile, z / tile);
       else uv.setXY(i, x / tile, z / tile);
     }
-    this.board = new THREE.Mesh(geo, this.outerMaterial);
+    this.board = new THREE.Mesh(geo, this.boardMaterial);
     this.board.position.set(board.centerX, board.centerY, board.topZ - board.thickness / 2);
     this.board.receiveShadow = true;
     this.board.castShadow = true;
     this.board.name = 'Backing board';
     this.scene.add(this.board);
+    this.needsRender = true;
+  }
+
+  /** Paper colors (sRGB hex) for the outer pyramids, the inner pyramids and the board. */
+  setColors(colors: PaperColors): void {
+    paperColor(colors.outer, this.outerMaterial.color);
+    paperColor(colors.inner, this.innerMaterial.color);
+    paperColor(colors.board, this.boardMaterial.color);
     this.needsRender = true;
   }
 
@@ -355,9 +379,13 @@ export class Viewer {
 
   /* ---------------------------------------------------------------- camera ---- */
 
-  private resize(): void {
+  private resize(force = false): void {
     const w = Math.max(1, this.container.clientWidth);
     const h = Math.max(1, this.container.clientHeight);
+    if (!force && w === this.lastSize.w && h === this.lastSize.h) return;
+    const widthChanged = w !== this.lastSize.w;
+    const heightChange = Math.abs(h - this.lastSize.h);
+    this.lastSize = { w, h };
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(w, h, false);
     this.composer.setPixelRatio(this.pixelRatio);
@@ -366,16 +394,38 @@ export class Viewer {
     this.gtao.setSize(Math.ceil((w * this.pixelRatio) / 2), Math.ceil((h * this.pixelRatio) / 2));
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.needsRender = true;
-    if (this.currentView) {
+    // Resizing clears the canvas; draw right away so the browser never shows an empty frame.
+    this.renderNow();
+    // Reframe after real layout changes (rotation, window resize), but not for the small height
+    // changes of mobile browser toolbars.
+    if (this.currentView && (widthChanged || heightChange > 120)) {
       clearTimeout(this.reframeTimer);
       const view = this.currentView;
       this.reframeTimer = window.setTimeout(() => this.currentView === view && this.goTo(view, false), 120);
     }
   }
 
+  /**
+   * Screen space (CSS px) covered by page UI; framing keeps the artwork in the free area.
+   * Re-frames the current view (animated) when the insets change.
+   */
+  setInsets(insets: Partial<{ top: number; bottom: number; left: number; right: number }>, animate = true): void {
+    const next = { ...this.insets, ...insets };
+    const changed = (Object.keys(next) as (keyof typeof next)[]).some((k) => Math.abs(next[k] - this.insets[k]) > 0.5);
+    this.insets = next;
+    if (changed) this.goTo(this.currentView ?? this.initialView, animate);
+  }
+
   /** Pose that frames a W x H region around `target`, seen along `dir` (from target to camera). */
-  private framePose(dir: THREE.Vector3, up: THREE.Vector3, target: THREE.Vector3, w: number, h: number, margin: number): CameraPose {
+  private framePose(
+    dir: THREE.Vector3,
+    up: THREE.Vector3,
+    target: THREE.Vector3,
+    w: number,
+    h: number,
+    margin: number,
+    viewport: { W: number; H: number },
+  ): CameraPose {
     const d = dir.clone().normalize();
     const right = new THREE.Vector3().crossVectors(up, d).normalize();
     const trueUp = new THREE.Vector3().crossVectors(d, right).normalize();
@@ -388,20 +438,23 @@ export class Viewer {
         maxU = Math.max(maxU, Math.abs(c.dot(trueUp)));
       }
     }
+    const { W, H } = viewport;
     const tanV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-    const tanH = tanV * this.camera.aspect;
+    const tanH = tanV * (W / H);
     // Fit into the part of the viewer not covered by page UI, then shift so the artwork is
-    // centered in that free band.
-    const H = Math.max(1, this.container.clientHeight);
-    const { top, bottom } = this.viewInsets;
-    const free = Math.max(0.35, (H - top - bottom) / H);
-    const dist = Math.max(maxU / (tanV * free), maxR / tanH) * margin;
-    const shift = ((top - bottom) / 2) * ((2 * dist * tanV) / H);
-    const t = target.clone().addScaledVector(trueUp, shift);
+    // centered in that free area.
+    const { top, bottom, left, right: rightInset } = this.insets;
+    const freeV = Math.max(0.15, (H - top - bottom) / H);
+    const freeH = Math.max(0.15, (W - left - rightInset) / W);
+    const dist = Math.max(maxU / (tanV * freeV), maxR / (tanH * freeH)) * margin;
+    const mmPerPx = (2 * dist * tanV) / H;
+    const shiftUp = ((top - bottom) / 2) * mmPerPx;
+    const shiftRight = ((rightInset - left) / 2) * mmPerPx;
+    const t = target.clone().addScaledVector(trueUp, shiftUp).addScaledVector(right, shiftRight);
     return { position: t.clone().addScaledVector(d, dist), target: t, up: trueUp };
   }
 
-  viewPose(name: ViewName): CameraPose {
+  viewPose(name: ViewName, viewport = { W: Math.max(1, this.container.clientWidth), H: Math.max(1, this.container.clientHeight) }): CameraPose {
     const b = this.boardSettings ?? {
       width: this.presentation.board.widthMm,
       height: this.presentation.board.heightMm,
@@ -409,22 +462,22 @@ export class Viewer {
       centerY: this.presentation.board.center[1],
     };
     const center = new THREE.Vector3(b.centerX, b.centerY, 20);
-    const narrow = this.camera.aspect < 1;
+    const narrow = viewport.W / viewport.H < 1;
     if (name === 'front') {
-      return this.framePose(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), center, b.width, b.height, narrow ? 1.04 : 1.1);
+      return this.framePose(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), center, b.width, b.height, narrow ? 1.04 : 1.1, viewport);
     }
     if (name === 'angled') {
       const cam = findCamera(this.presentation, '02');
       const dir = cam ? new THREE.Vector3(...cam.forward).negate() : new THREE.Vector3(0.18, -0.35, 0.92);
       const up = cam ? new THREE.Vector3(...cam.up) : new THREE.Vector3(0, 1, 0);
-      return this.framePose(dir, up, center, b.width, b.height, narrow ? 1.12 : 1.16);
+      return this.framePose(dir, up, center, b.width, b.height, narrow ? 1.12 : 1.16, viewport);
     }
     const cam = findCamera(this.presentation, '03');
     const dir = cam ? new THREE.Vector3(...cam.forward).negate() : new THREE.Vector3(0.5, 0.4, 0.75);
     const up = cam ? new THREE.Vector3(...cam.up) : new THREE.Vector3(0, 1, 0);
     const t = cam ? new THREE.Vector3(cam.targetOnBoardMm[0], cam.targetOnBoardMm[1], 30) : center;
     const size = cam ? cam.orthoScaleMm : 490;
-    return this.framePose(dir, up, t, size, size * 0.8, 1.0);
+    return this.framePose(dir, up, t, size, size * 0.8, 1.0, viewport);
   }
 
   goTo(name: ViewName, animate = true): void {
@@ -436,13 +489,8 @@ export class Viewer {
     this.goTo(this.initialView);
   }
 
-  /** Fly to a close view of one piece (used by the geometry check). */
-  focusPiece(index: number): void {
-    this.currentView = null;
-    const a = this.sculpture.anchors;
-    const target = new THREE.Vector3(a[index * 3], a[index * 3 + 1], 30);
-    const dir = new THREE.Vector3(0.25, -0.3, 0.92);
-    this.applyPose(this.framePose(dir, new THREE.Vector3(0, 1, 0), target, 360, 280, 1), true);
+  get view(): ViewName | null {
+    return this.currentView;
   }
 
   private applyPose(pose: CameraPose, animate: boolean): void {
@@ -462,46 +510,6 @@ export class Viewer {
       t0: performance.now(),
       ms: 900,
     };
-  }
-
-  setInteraction(mode: InteractionMode): void {
-    const c = this.controls;
-    const NONE = -1 as unknown as THREE.MOUSE;
-    if (mode === 'paint') {
-      c.mouseButtons = { LEFT: NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-      c.touches = { ONE: -1 as unknown as THREE.TOUCH, TWO: THREE.TOUCH.DOLLY_ROTATE };
-    } else {
-      c.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-      c.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-    }
-    this.renderer.domElement.dataset.mode = mode;
-  }
-
-  /* ---------------------------------------------------------------- picking ---- */
-
-  /** Board-plane (z = 0) point under a client position, or null if the ray misses. */
-  boardPoint(clientX: number, clientY: number, z = 0): { x: number; y: number } | null {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
-    this.raycaster.setFromCamera(ndc, this.camera);
-    this.plane.constant = -z;
-    const hit = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.plane, hit)) return null;
-    return { x: hit.x, y: hit.y };
-  }
-
-  /** Client coordinates of a world point. */
-  project(x: number, y: number, z: number): { x: number; y: number; visible: boolean } {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const v = new THREE.Vector3(x, y, z).project(this.camera);
-    return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, visible: v.z < 1 };
-  }
-
-  /** World size (mm) of one CSS pixel at a board point, for screen-constant overlays. */
-  mmPerPixel(x: number, y: number): number {
-    const dist = this.camera.position.distanceTo(new THREE.Vector3(x, y, 0));
-    const h = this.renderer.domElement.clientHeight || 1;
-    return (2 * dist * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) / h;
   }
 
   /* ---------------------------------------------------------------- rendering ---- */
@@ -529,34 +537,40 @@ export class Viewer {
     }
     if (this.renderedLastFrame) this.adaptResolution(now, dt * 1000);
     this.renderedLastFrame = true;
-    this.needsRender = false;
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    this.camera.near = Math.max(2, dist * 0.02);
-    this.camera.far = dist * 6 + 20000;
-    this.camera.updateProjectionMatrix();
     const t0 = performance.now();
-    this.renderScene(true);
+    this.renderNow();
     const r = performance.now() - t0;
     this.stats.frames++;
     this.stats.renderMs = this.stats.renderMs * 0.9 + r * 0.1;
     this.stats.frameMs = this.stats.frameMs * 0.9 + dt * 1000 * 0.1;
   }
 
-  /** Step the pixel ratio down when continuous rendering is slow, and back up when there is headroom. */
+  private renderNow(): void {
+    this.needsRender = false;
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    this.camera.near = Math.max(2, dist * 0.02);
+    this.camera.far = dist * 6 + 20000;
+    this.camera.updateProjectionMatrix();
+    this.renderer.autoClear = true;
+    this.composer.render();
+  }
+
+  /**
+   * Lower the pixel ratio one step if continuous rendering stays far below 30 fps. Only goes down,
+   * at most twice per visit, and never reacts to browsers that simply cap the frame rate at 30 fps.
+   */
   private adaptResolution(now: number, intervalMs: number): void {
-    if (intervalMs > 100) return; // hidden tab or a one-off hitch
+    if (intervalMs > 150 || this.downgrades >= 2 || this.pixelRatio <= this.minPixelRatio) return;
     this.intervals.push(intervalMs);
-    if (this.intervals.length > 45) this.intervals.shift();
-    if (this.intervals.length < 30 || now - this.lastQualityChange < 1500) return;
+    if (this.intervals.length > 90) this.intervals.shift();
+    if (this.intervals.length < 90 || now - this.lastQualityChange < 3000) return;
     const avg = this.intervals.reduce((a, b) => a + b, 0) / this.intervals.length;
-    let next = this.pixelRatio;
-    if (avg > 21 && this.pixelRatio > this.minPixelRatio) next = Math.max(this.minPixelRatio, this.pixelRatio - 0.25);
-    else if (avg < 13 && this.pixelRatio < this.maxPixelRatio) next = Math.min(this.maxPixelRatio, this.pixelRatio + 0.25);
-    if (next !== this.pixelRatio) {
-      this.pixelRatio = next;
+    if (avg > 45) {
+      this.pixelRatio = Math.max(this.minPixelRatio, this.pixelRatio - 0.25);
+      this.downgrades++;
       this.lastQualityChange = now;
       this.intervals = [];
-      this.resize();
+      this.resize(true);
     }
   }
 
@@ -564,25 +578,12 @@ export class Viewer {
     return this.pixelRatio;
   }
 
-  private renderScene(withOverlays: boolean): void {
-    const r = this.renderer;
-    r.autoClear = true;
-    this.composer.render();
-    if (withOverlays && this.overlaysVisible) {
-      r.autoClear = false;
-      r.clearDepth();
-      r.render(this.overlayScene, this.camera);
-      if (this.showGizmo) this.gizmo.render(r, this.camera);
-      r.autoClear = true;
-    }
-  }
-
-  /** Render immediately without overlays (used by pixel measurements and captures). */
+  /** Render immediately (used by pixel measurements and captures). */
   renderClean(): void {
-    this.renderScene(false);
+    this.renderNow();
   }
 
-  /** Render a clean image (no overlays) whose long side is about `longSide` pixels. */
+  /** Render an image whose long side is about `longSide` pixels. */
   async capture(longSide = 3000): Promise<Blob> {
     const r = this.renderer;
     const pr = r.getPixelRatio();
@@ -593,7 +594,7 @@ export class Viewer {
     r.setSize(size.x, size.y, false);
     this.composer.setPixelRatio(pr * k);
     this.composer.setSize(size.x, size.y);
-    this.renderScene(false);
+    this.renderNow();
     const src = r.domElement;
     const out = document.createElement('canvas');
     out.width = src.width;
@@ -601,9 +602,59 @@ export class Viewer {
     const ctx = out.getContext('2d')!;
     ctx.drawImage(src, 0, 0);
     r.setPixelRatio(pr);
-    this.resize();
-    this.needsRender = true;
+    this.resize(true);
     return new Promise((resolve, reject) => out.toBlob((b) => (b ? resolve(b) : reject(new Error('Image capture failed'))), 'image/png'));
+  }
+
+  /**
+   * Render a framed image of a named view at exactly `width` x `height` pixels, independent of
+   * the window's shape and the page UI. Everything happens synchronously, so the on-screen
+   * canvas is restored before the browser shows another frame.
+   */
+  snapshot(width: number, height: number, view: ViewName = 'front'): HTMLCanvasElement {
+    const r = this.renderer;
+    const max = Math.min(8192, r.capabilities.maxTextureSize);
+    const k = Math.min(1, max / Math.max(width, height));
+    const w = Math.round(width * k), h = Math.round(height * k);
+    const saved = {
+      position: this.camera.position.clone(),
+      target: this.controls.target.clone(),
+      up: this.camera.up.clone(),
+      insets: this.insets,
+      tween: this.tween,
+      view: this.currentView,
+    };
+    const out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    try {
+      r.setPixelRatio(1);
+      r.setSize(w, h, false);
+      this.composer.setPixelRatio(1);
+      this.composer.setSize(w, h);
+      this.gtao.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+      this.insets = { top: 0, bottom: 0, left: 0, right: 0 };
+      const pose = this.viewPose(view, { W: w, H: h });
+      this.camera.position.copy(pose.position);
+      this.camera.up.copy(pose.up);
+      this.camera.lookAt(pose.target);
+      this.controls.target.copy(pose.target);
+      this.renderNow();
+      out.getContext('2d')!.drawImage(r.domElement, 0, 0);
+    } finally {
+      this.insets = saved.insets;
+      this.camera.position.copy(saved.position);
+      this.camera.up.copy(saved.up);
+      this.controls.target.copy(saved.target);
+      this.camera.lookAt(saved.target);
+      this.tween = saved.tween;
+      this.currentView = saved.view;
+      this.lastSize = { w: 0, h: 0 };
+      this.resize(true);
+    }
+    return out;
   }
 
   dispose(): void {
@@ -659,50 +710,4 @@ function buildStudioEnvironment(renderer: THREE.WebGLRenderer, pres: Presentatio
   const tex = pmrem.fromScene(env, 0.035).texture;
   pmrem.dispose();
   return tex;
-}
-
-/** Small XYZ triad showing board axes (X right, Y up, Z toward viewer) in the corner. */
-class AxisGizmo {
-  private scene = new THREE.Scene();
-  private cam = new THREE.OrthographicCamera(-1.6, 1.6, 1.6, -1.6, 0.1, 10);
-  constructor() {
-    const axes: [THREE.Vector3, string, string][] = [
-      [new THREE.Vector3(1, 0, 0), '#ff5a5f', 'X'],
-      [new THREE.Vector3(0, 1, 0), '#34c759', 'Y'],
-      [new THREE.Vector3(0, 0, 1), '#0a84ff', 'Z'],
-    ];
-    for (const [dir, color, label] of axes) {
-      const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(), 1, color, 0.28, 0.16);
-      (arrow.line.material as THREE.LineBasicMaterial).linewidth = 2;
-      this.scene.add(arrow);
-      const c = document.createElement('canvas');
-      c.width = c.height = 64;
-      const g = c.getContext('2d')!;
-      g.fillStyle = color;
-      g.font = '600 44px system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillText(label, 32, 34);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
-      sprite.position.copy(dir.clone().multiplyScalar(1.38));
-      sprite.scale.setScalar(0.5);
-      this.scene.add(sprite);
-    }
-  }
-
-  render(renderer: THREE.WebGLRenderer, main: THREE.PerspectiveCamera): void {
-    const size = 84;
-    const w = renderer.getSize(new THREE.Vector2()).x;
-    this.cam.position.set(0, 0, 4).applyQuaternion(main.quaternion);
-    this.cam.quaternion.copy(main.quaternion);
-    renderer.clearDepth();
-    renderer.setScissorTest(true);
-    // Bottom-right corner (three.js viewports are measured from the bottom-left).
-    renderer.setScissor(w - size - 14, 14, size, size);
-    renderer.setViewport(w - size - 14, 14, size, size);
-    renderer.render(this.scene, this.cam);
-    renderer.setScissorTest(false);
-    const full = renderer.getSize(new THREE.Vector2());
-    renderer.setViewport(0, 0, full.x, full.y);
-  }
 }

@@ -1,14 +1,18 @@
-# Origami 1829: viewer and customization studio
+# Origami Waves
 
-A single-page website for **Origami 1829**, a paper sculpture of 522 open, matte-black pyramids
-on a 29 × 18 grid (50 mm pitch), each nesting a vivid blue (#007AFF) shell at exactly 75% scale.
-The top of the page is a 3-D viewer that opens on the sculpture exactly as saved in
-`origami1829-final-vision.blend`. Below it is a studio for shaping your own version with wave
-sources and brushes that move the real folded geometry, with a live geometry check, undo, local
-saving, and exports that open in Blender.
+A website for **Origami Waves**, a paper artwork of 522 folded pyramids in matte black on a
+29 × 18 grid, each open on one side to reveal a smaller pyramid of vivid blue (#007AFF) paper
+inside at exactly 75% scale.
 
-Built with [three.js](https://threejs.org) (WebGL 2), TypeScript and Vite. No server is involved:
-everything runs and stays in the browser.
+* **Main page:** the artwork in 3-D, exactly as saved in `origami1829-final-vision.blend`, with
+  nothing else in the way. The **i** button (bottom left) slides in the details and measurements
+  (in inches). **Customize** (bottom right) opens the second page.
+* **Customize page:** choose paper colors, pick a pattern style and shape it with three sliders,
+  let the pattern move slowly like a live stream (pause, go back, save the moment), and save
+  designs, images and Blender files.
+
+Built with [three.js](https://threejs.org) (WebGL 2), TypeScript and Vite. Everything runs in the
+browser; nothing is sent anywhere.
 
 ## Quick start
 
@@ -26,109 +30,69 @@ Open http://localhost:5173. For a production build (static files in `dist/`, hos
 npm run build
 ```
 
-Requirements: Node 20+ and a browser with WebGL 2 (current Chrome, Edge, Safari or Firefox).
-Blender (4.2+, tested with 5.0.1) is only needed to regenerate assets or rebuild designs as `.blend`.
+The live site is deployed on Vercel from the `main` branch. Requirements: Node 20+ and a browser
+with WebGL 2. Blender (4.2+, tested with 5.0.1) is only needed to regenerate assets or to verify
+the Blender files.
 
 ## Using the site
 
-**Viewing.** Drag to orbit, scroll or pinch to zoom, right-drag or two-finger drag to pan.
-*Front*, *Angled* and *Detail* recreate the three Blender cameras; the circular arrow resets the
-camera. On phones, swipe sideways to turn the artwork and vertically to scroll the page. After you
-edit, a toggle switches the viewer between **Original** and **Your design**.
+**Viewing.** Drag to turn the artwork, scroll or pinch to zoom, right-drag or use two fingers to
+move it. *Front*, *Angled* and *Detail* recreate the three Blender cameras; the circular arrow
+resets the camera. The page never scrolls, so touch gestures always go to the artwork.
 
-**Customize** pins the artwork at the top of the screen and opens the studio below it. The tool
-strip holds the tools, wave playback, undo/redo, *hold to compare* with the original, the
-geometry status, and *Done*.
+**Customize** (the page's address ends in `#customize`, so the browser's back button returns to
+the main page):
 
-### Wave sources
-
-1. Choose **Waves**. One ripple sits at the center with zero influence, so entering the tool
-   changes nothing.
-2. Raise **Height** (mm up and down) and/or **Lean** (mm sideways; negative leans the other way).
-   Height and lean share the wave's **Spacing** (distance between crests) and timing.
-3. Drag the round handle on the artwork to move the source, or click/tap the board to place it.
-   **Reach** limits how far the ripple travels; *Reach the whole board* removes the limit.
-4. **+ Traveling wave** adds straight wave fronts. Drag its small second handle, or use
-   **Direction**, to aim it.
-5. **Play** animates the actual geometry; **Speed** sets how fast each source moves
-   (negative = inward/backward, 0 = standing). The scrubber shows one full cycle.
-6. **Pause** freezes the exact shape. **Keep this shape** commits it as the new base for
-   brushes. The wave settings move to *Kept shapes*, where *Return to settings* brings them back.
-
-Several sources combine. Changing any setting recomputes from the base, so nothing drifts.
-
-### Brushes
-
-| Brush | What it changes |
+| Control | What it does |
 | --- | --- |
-| **Height** | Z only: raise toward you (+Z) or lower toward the board (−Z) |
-| **X lean** | X only: lean right (+X) or left (−X) |
-| **Y lean** | Y only: lean up (+Y) or down (−Y) |
-| **Smooth** | Softens abrupt steps between neighbors; choose all axes or one. Broad crests survive. |
-| **Restore** | Blends back toward the chosen baseline (kept shape/starting point, original, or neutral) |
+| **Colors** | Pyramids (outside paper), Inside (the nested paper), Board. Each has a set of swatches plus a custom color picker. |
+| **Pattern style** | *Original* (the artwork as made), *Drift*, *Ripple*, *Dunes*, *Crosscurrent*, *Bloom*, *Spiral*. The small previews show each style in your colors. |
+| **Intensity** | Calm to bold: how far the pyramids rise, fall and lean. |
+| **Scale** | Fine to broad: the distance between wave crests. |
+| **Flow** | Straight to swirling: how much the wave fronts bend. |
+| **Shuffle** | A new variation of the style (new positions, angles and timing). |
+| **Animate** | Starts the slow, continuous motion and shows the play bar. |
+| **Undo / Redo / Reset** | Step through changes, or go back to the original artwork. |
 
-Paint with one finger or the left mouse button. The soft circle on the board is the footprint; its
-arrow or ⊙/⊗ symbol shows the direction in board coordinates even when the camera is rotated.
-**Size** is the footprint diameter, **Strength** the rate (mm per second at the center for the axis
-brushes). One continuous stroke is one undo step.
+The **play bar** works like a live stream: pause, jump back 5 seconds, drag through the last
+minute, return to *Live*, or press the bookmark to save the moment you are looking at.
 
-Camera while painting: right-drag orbits, the wheel zooms, hold **Space** to move the view, or use
-two fingers on a touch screen (this cancels the stroke in progress). Hold **⌥ Option/Alt** to
-reverse a brush; **[** and **]** change its size.
+**Save design** keeps the look (colors, style, sliders, moment) in this browser under *My
+designs*, with a thumbnail; tap one to reopen it. The current look is also remembered between
+visits. **Save image** renders a 3000 × 2000 PNG of the front view. **For Blender** downloads a
+zip with a `.glb` (File › Import › glTF 2.0) and a script that rebuilds the full scene with
+materials, lights and cameras in your colors (instructions in the zip's README).
 
-Keyboard: `W` waves, `H` `X` `Y` `S` `R` brushes, `V` view, `P` play/pause, `K` keep,
-hold `C` compare, `1` `2` `3` views, `0` reset camera, `⌘Z` / `⇧⌘Z` undo/redo, `Esc` leave.
+### Geometry limits
 
-### Starting point, checks, board
+Every variation stays within limits taken from the original artwork, so pyramids are never too
+short, never fall toward the board, never touch their neighbors and never reach into the 2-inch
+border of the board:
 
-* **Starting point**: *Current sculpture* (the import) or *Neutral pattern* (every tip centered
-  over its base at the imported median height, 47.03 mm). Switching is undoable; the imported
-  original is never modified.
-* **Extended ranges** unlock bolder heights, leans and wave amounts.
-* **Geometry check** runs continuously (at most every 0.35 s while animating) and completely before
-  every save or export. Problems are flagged on the artwork in red (errors) and amber (warnings)
-  and listed with a *Show* button. Nothing is corrected silently.
-* **Board** stays fixed during animation. The panel shows the remaining border on each side and
-  warns when a design uses the 2-inch border or leaves the board. **Fit board with 2-inch border**
-  resizes it around the full tip envelope, including presentation paper thickness, and the new size
-  is saved with the design.
+* tip height 22 to 76 mm (the original: 27 to 71 mm), resting at 46 mm
+* sideways lean at most 62 mm, and sized to the wave spacing so neighboring tips cannot converge
+* all tips inside the board's 2-inch border
 
-### Save and export
-
-* **Save in this browser**: named designs with thumbnails (localStorage). Your unsaved work is also
-  kept as a draft and offered as *Resume last session*.
-* **Design file (.json)**: the complete design (starting point, committed offsets, wave sources and
-  phase, kept shapes, board, evaluated tip positions, check result). *Open design file…* loads it
-  and rebuilds the exact pose from the settings.
-* **Image (.png)**: a clean render (about 3000 px on the long side) of the current view.
-* **3-D model (.glb)**: every outer and inner shell as its own object (4 vertices, 3 faces, the open
-  hypotenuse face kept open), plus the board. Blender's *File › Import › glTF 2.0* places it at the
-  original coordinates. Optionally includes the presentation paper thickness.
-* **Blender package (.zip)**: design file, rebuild script and canonical data. Inside the unzipped
-  folder run:
-
-  ```bash
-  blender -b --factory-startup -P rebuild_design.py -- --design design.json --out my-design.blend
-  ```
-
-  This recreates the scene as in the original file: object names, vertex order, fixed bases, the
-  inner shells rebuilt with the 75% rule, Solidify/Bevel presentation modifiers, procedural
-  materials, board, lights and cameras.
+These limits are part of how the patterns are built. On top of that, after each change the
+complete geometry check runs; if it ever found anything, the pattern would be toned down until
+clean. In 10,000 random variations at the most extreme settings it never had to (see
+[docs/VERIFICATION.md](docs/VERIFICATION.md)).
 
 ## Project layout
 
 ```
-index.html                 page markup
+index.html                 page markup (main page, info panel, customize panel, play bar)
 src/core/                  geometry model, no DOM (tested in Node)
   sculpture.ts             canonical data, immutable original, inner rule
-  design.ts                design state, undo history, design file format
-  studio.ts                every editing action (StudioModel)
-  waves.ts brushes.ts smoothing.ts validation.ts board.ts solidify.ts
+  variations.ts            pattern styles, sliders, geometry limits, safety net
+  look.ts                  colors, palettes, saved-look format
+  exportLook.ts            design file for the Blender rebuild script
+  validation.ts board.ts solidify.ts design.ts waves.ts
   glb.ts exportGeometry.ts GLB writer and 3-D export
-src/render/                three.js viewer, studio lighting, overlays
-src/ui/                    page controller, storage, zip writer
+src/render/viewer.ts       three.js viewer, studio lighting, framing, snapshots
+src/ui/                    page controller, storage, units, zip writer
 public/assets/             prepared assets (generated, see below)
-public/downloads/          rebuild_design.py for the Blender package
+public/downloads/          rebuild_design.py for the Blender download
 tools/                     asset preparation and Blender verification
 assets-src/                read-only copy of the source .blend and supporting files
 tests/                     Vitest suite and fixtures
@@ -168,26 +132,24 @@ npm test
 npm run verify-blender
 ```
 
-`npm test` runs 33 tests on the model (import, inner rule, waves, brushes, smoothing, validation,
-save/load, GLB export) and writes measured numbers to `test-output/measurements.json`.
-`npm run verify-blender` rebuilds an unedited and an edited design in Blender, compares every shell
-with the original file, and imports the GLB export into Blender. Measured results, including
-in-browser checks of rendering, touch, performance and exports, are in
-[docs/VERIFICATION.md](docs/VERIFICATION.md). The mathematics is in
+```bash
+npm run sweep
+```
+
+`npm test` checks the import, the geometry limits (including a 600-variation random sweep), the
+saved-look format and the exports. `npm run verify-blender` rebuilds the original and a colored
+variation in Blender and imports the `.glb`. `npm run sweep` checks 10,000 random variations
+(about 2 minutes; `SWEEP=50000 npm run sweep` for more). Results are in
+[docs/VERIFICATION.md](docs/VERIFICATION.md); the mathematics is in
 [docs/DEVELOPER.md](docs/DEVELOPER.md).
 
 ## Limitations
 
-* This is a design preview, not a fabrication check. Intersection checks use the design surfaces;
-  paper thickness, glue tabs and unfolding are not modeled, and the existing cutting templates do
-  not describe edited designs.
+* The variations are previews of possible versions, not fabrication plans: paper thickness, glue
+  tabs and unfolding are not modeled, and the existing cutting templates describe only the
+  original.
 * The browser recreates the Cycles look with image-based lighting, a soft shadow map and ambient
-  occlusion, tuned by matching pixel statistics of the reference renders. It is not path traced.
-  The paper grain is a baked approximation of Blender's noise, not the identical function.
-* The 0.055 mm edge bevel is not rendered, so the browser's presentation envelope differs from
-  Blender's by at most 0.05 mm (the imported board shows at least 50.75 mm of border).
-* The viewer uses a narrow perspective camera; the Blender reference renders are orthographic.
-* Undo history lasts for the session; kept shapes and everything needed to reproduce a design are
-  saved in the design file. Browser storage typically holds a few dozen designs.
-* Tested in Chromium (desktop, and phone/tablet viewports with synthetic touch events). Not yet
-  tried on physical phones or in Safari and Firefox.
+  occlusion, tuned against the reference renders; it is not path traced. Custom colors use the
+  same paper grain and lighting, so very light papers look as they would under that studio light.
+* Tested in Chromium on desktop and in phone and tablet viewports with simulated touch. Not yet
+  tried on a physical iPhone, in Safari or in Firefox.

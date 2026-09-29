@@ -1,38 +1,35 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
-import { defaultBrush } from '../src/core/brushes';
-import { serializeDesign } from '../src/core/design';
+import { importedBoard } from '../src/core/board';
 import { buildDesignGlb } from '../src/core/exportGeometry';
-import { StudioModel } from '../src/core/studio';
+import { lookDesignFile } from '../src/core/exportLook';
+import { ORIGINAL_LOOK, sanitizeLook } from '../src/core/look';
+import { VariationEngine } from '../src/core/variations';
 import { loadSculpture } from './helpers';
 
 /**
- * Writes design files used by tools/verify-blender-roundtrip.mjs:
- *   test-output/design-original.json  the unedited import
- *   test-output/design-edited.json    waves + kept shape + brush strokes + fitted board
- *   test-output/design-edited.glb     the edited pose as GLB
+ * Writes the files used by tools/verify-blender-roundtrip.mjs, with the same code as the
+ * site's "For Blender" download:
+ *   test-output/design-original.json  the artwork as made
+ *   test-output/design-edited.json    a Drift variation in coral and walnut, mid-motion
+ *   test-output/design-edited.glb     the same pose as GLB (with paper thickness and colors)
  */
 it('writes round-trip fixtures', () => {
   const s = loadSculpture();
+  const engine = new VariationEngine(s);
   mkdirSync('test-output', { recursive: true });
-  const original = new StudioModel(s);
-  writeFileSync('test-output/design-original.json', JSON.stringify(serializeDesign(s, original.snap, 'Original import')));
+  writeFileSync('test-output/design-original.json', JSON.stringify(lookDesignFile(s, ORIGINAL_LOOK, s.originalOffsets.slice(), 'Original')));
 
-  const m = new StudioModel(s);
-  const src = m.addSource('ripple', 500, 600);
-  m.updateSource(src.id, { height: 12, lean: 9, spacing: 500 });
-  const t = m.addSource('travel', 1200, 300);
-  m.updateSource(t.id, { height: 5, lean: 7, direction: 210 });
-  m.setPhase(2.3);
-  m.keepShape();
-  m.beginStroke({ ...defaultBrush('leanX'), radius: 220 }, 900, 500, 0);
-  for (let k = 1; k <= 30; k++) m.strokeTo(900 + k * 5, 500, k / 60);
-  m.endStroke();
-  m.beginStroke({ ...defaultBrush('smooth'), radius: 260 }, 400, 300, 0);
-  for (let k = 1; k <= 30; k++) m.strokeTo(400, 300, k / 60);
-  m.endStroke();
-  m.fitBoard();
-  writeFileSync('test-output/design-edited.json', JSON.stringify(serializeDesign(s, m.snap, 'Edited fixture')));
-  const p = m.getPose();
-  writeFileSync('test-output/design-edited.glb', buildDesignGlb(s, p.outer, p.inner, m.snap.board, { includePresentation: false, designName: 'Edited fixture' }));
+  const look = sanitizeLook({
+    variation: { style: 'drift', seed: 1829, intensity: 0.95, scale: 0.45, flow: 0.5 },
+    colors: { outer: '#121416', inner: '#ff5a4e', board: '#5b3f2c' },
+    time: 37.5,
+  });
+  const off = engine.offsets(look.variation, look.time);
+  writeFileSync('test-output/design-edited.json', JSON.stringify(lookDesignFile(s, look, off, 'Drift fixture')));
+  const { outer, inner } = s.shellVertices(s.tipsFromOffsets(off));
+  writeFileSync(
+    'test-output/design-edited.glb',
+    buildDesignGlb(s, outer, inner, importedBoard(s), { includePresentation: false, designName: 'Drift fixture', colors: look.colors }),
+  );
 });

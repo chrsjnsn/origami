@@ -123,6 +123,45 @@ def paper_material(info, bump_default):
     return mat
 
 
+def srgb_to_linear(hex_color):
+    h = hex_color.lstrip("#")
+    out = []
+    for k in range(3):
+        c = int(h[2 * k:2 * k + 2], 16) / 255.0
+        out.append(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
+    return out
+
+
+def with_color(info, hex_color, name):
+    """Material info with its color ramp moved to a new base color (sRGB hex).
+
+    The ramp stops keep their ratio to the Principled Base Color of the original material
+    (about 0.74x and 1.17x), so the paper grain looks the same in any color.
+    """
+    if not hex_color:
+        return info
+    base = (info.get("principled", {}).get("Base Color") or [1, 1, 1])[:3]
+    target = srgb_to_linear(hex_color)
+    out = dict(info)
+    out["name"] = name
+    stops = []
+    for st in info.get("ramp", []):
+        ratio = [st["linear_rgb"][k] / base[k] if base[k] > 1e-6 else 1.0 for k in range(3)]
+        # Use the brightest channel's ratio so hues without that channel keep their proportions.
+        kmax = max(range(3), key=lambda k: base[k])
+        r = ratio[kmax]
+        stops.append({"position": st["position"], "linear_rgb": [target[k] * r for k in range(3)]})
+    out["ramp"] = stops
+    return out
+
+
+def ramp_upper(mat):
+    for node in mat.node_tree.nodes:
+        if node.type == "VALTORGB":
+            return tuple(round(c, 6) for c in node.color_ramp.elements[-1].color[:3])
+    return ()
+
+
 def plain_material(name, color, roughness):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -184,8 +223,14 @@ def main():
     for c in (col_outer, col_inner, col_studio):
         scene.collection.children.link(c)
 
-    mat_outer = paper_material(pres["materials"]["outer"], 0.24)
-    mat_inner = paper_material(pres["materials"]["inner"], 0.12)
+    colors = design.get("colors") or {}
+    mat_outer = paper_material(with_color(pres["materials"]["outer"], colors.get("outer"), "Outer paper " + str(colors.get("outer"))), 0.24)
+    mat_inner = paper_material(with_color(pres["materials"]["inner"], colors.get("inner"), "Inner paper " + str(colors.get("inner"))), 0.12)
+    mat_board = (
+        paper_material(with_color(pres["materials"]["outer"], colors.get("board"), "Board " + str(colors.get("board"))), 0.24)
+        if colors.get("board")
+        else mat_outer
+    )
 
     inner_err = 0.0
     mid_err = 0.0
@@ -249,8 +294,8 @@ def main():
     faces = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
     bm = bpy.data.meshes.new("Backing board")
     bm.from_pydata(verts, [], faces)
-    bm.materials.append(mat_outer)
-    board = bpy.data.objects.new("Backing board - matte black - 2 inch border", bm)
+    bm.materials.append(mat_board)
+    board = bpy.data.objects.new("Backing board - matte black - 2 inch border" if not colors else "Backing board - 2 inch border", bm)
     board.location = (b["centerX"] / MM, b["centerY"] / MM, (b["topZ"] - b["thickness"] / 2) / MM)
     bev = board.modifiers.new("Slightly softened board edge", "BEVEL")
     bev.width = 0.0006
@@ -267,7 +312,7 @@ def main():
     scene["design_source_sha256"] = design.get("source", {}).get("sha256", "")
     scene["inner_scale"] = INNER_SCALE
     scene["inner_alignment"] = "Scale all vertices about midpoint of base hypotenuse."
-    scene["rebuilt_by"] = "rebuild_design.py (Origami 1829 studio)"
+    scene["rebuilt_by"] = "rebuild_design.py (Origami Waves)"
 
     report = {
         "design": design.get("name"),
@@ -277,6 +322,13 @@ def main():
         "innerRuleMaxErrorMm": inner_err,
         "diagonalMidpointMaxErrorMm": mid_err,
         "boardMm": [b["width"], b["height"], b["thickness"]],
+        "materials": {
+            role: {
+                "name": m.name,
+                "rampUpperLinear": list(ramp_upper(m)),
+            }
+            for role, m in (("outer", mat_outer), ("inner", mat_inner), ("board", mat_board))
+        },
         "out": os.path.abspath(args.out),
     }
     if args.compare:

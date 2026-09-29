@@ -1,10 +1,10 @@
 /**
- * The one authoritative design state.
+ * Design file format (origami1829-design v1), read by the Blender rebuild script.
  *
  *   pose tips = anchors + base offsets + wave field(sources, phase)
  *
- * Everything else (outer shells, inner shells, validation, envelopes, saved files, exports)
- * is derived from this. Inner geometry is never stored or edited independently.
+ * The site writes pattern variations as base offsets with no wave sources (see exportLook.ts).
+ * Inner geometry is never stored: it always follows from the 75% rule.
  */
 
 import { type BoardSettings, importedBoard } from './board';
@@ -39,40 +39,6 @@ export interface DesignSnapshot {
   kept: KeptShape[];
 }
 
-export function cloneSource(s: WaveSource): WaveSource {
-  return { ...s };
-}
-
-export function cloneSnapshot(s: DesignSnapshot): DesignSnapshot {
-  return {
-    startingPoint: s.startingPoint,
-    base: s.base.slice(),
-    reference: s.reference,
-    referenceLabel: s.referenceLabel,
-    sources: s.sources.map(cloneSource),
-    phase: s.phase,
-    board: { ...s.board },
-    kept: s.kept.map((k) => ({ ...k, sources: k.sources.map(cloneSource), baseBefore: k.baseBefore })),
-  };
-}
-
-export function startingOffsets(sculpture: Sculpture, sp: StartingPoint): Float64Array {
-  return (sp === 'current' ? sculpture.originalOffsets : sculpture.neutralOffsets).slice();
-}
-
-export function initialSnapshot(sculpture: Sculpture): DesignSnapshot {
-  return {
-    startingPoint: 'current',
-    base: startingOffsets(sculpture, 'current'),
-    reference: startingOffsets(sculpture, 'current'),
-    referenceLabel: 'Current sculpture',
-    sources: [],
-    phase: 0,
-    board: importedBoard(sculpture),
-    kept: [],
-  };
-}
-
 /** Evaluate the pose tip offsets of a snapshot (base + waves) into `out`. */
 export function poseOffsets(sculpture: Sculpture, snap: DesignSnapshot, out: Float64Array, field?: Float64Array): Float64Array {
   const f = field ?? new Float64Array(sculpture.count * 3);
@@ -86,88 +52,6 @@ export function poseTips(sculpture: Sculpture, snap: DesignSnapshot, out: Float6
   for (let j = 0; j < out.length; j++) out[j] += sculpture.anchors[j];
   return out;
 }
-
-/** Wrap the phase into one full loop so long playback stays numerically tidy. */
-export function wrapPhase(phase: number, sources: readonly WaveSource[]): number {
-  const period = 2 * Math.PI * loopTurns(sources);
-  const p = phase % period;
-  return p < 0 ? p + period : p;
-}
-
-/* ------------------------------------------------------------------------------------------ */
-/* Undo history                                                                                */
-/* ------------------------------------------------------------------------------------------ */
-
-export interface HistoryEntry {
-  label: string;
-  snapshot: DesignSnapshot;
-}
-
-export class History {
-  private undoStack: HistoryEntry[] = [];
-  private redoStack: HistoryEntry[] = [];
-  private lastKey: string | null = null;
-  private lastTime = 0;
-  constructor(private readonly limit = 200) {}
-
-  /**
-   * Record the state *before* a change. Changes with the same `coalesceKey` arriving within
-   * `windowMs` merge into one undo step (for example one slider drag).
-   */
-  record(label: string, before: DesignSnapshot, coalesceKey: string | null = null, now = Date.now(), windowMs = 900): void {
-    if (coalesceKey && coalesceKey === this.lastKey && now - this.lastTime < windowMs) {
-      this.lastTime = now;
-      return;
-    }
-    this.undoStack.push({ label, snapshot: cloneSnapshot(before) });
-    if (this.undoStack.length > this.limit) this.undoStack.shift();
-    this.redoStack = [];
-    this.lastKey = coalesceKey;
-    this.lastTime = now;
-  }
-
-  breakCoalescing(): void {
-    this.lastKey = null;
-  }
-
-  undo(current: DesignSnapshot): HistoryEntry | null {
-    const e = this.undoStack.pop();
-    if (!e) return null;
-    this.redoStack.push({ label: e.label, snapshot: cloneSnapshot(current) });
-    this.lastKey = null;
-    return e;
-  }
-
-  redo(current: DesignSnapshot): HistoryEntry | null {
-    const e = this.redoStack.pop();
-    if (!e) return null;
-    this.undoStack.push({ label: e.label, snapshot: cloneSnapshot(current) });
-    this.lastKey = null;
-    return e;
-  }
-
-  get canUndo(): boolean {
-    return this.undoStack.length > 0;
-  }
-  get canRedo(): boolean {
-    return this.redoStack.length > 0;
-  }
-  get undoLabel(): string | null {
-    return this.undoStack.at(-1)?.label ?? null;
-  }
-  get redoLabel(): string | null {
-    return this.redoStack.at(-1)?.label ?? null;
-  }
-  clear(): void {
-    this.undoStack = [];
-    this.redoStack = [];
-    this.lastKey = null;
-  }
-}
-
-/* ------------------------------------------------------------------------------------------ */
-/* Serialization                                                                               */
-/* ------------------------------------------------------------------------------------------ */
 
 export const DESIGN_FORMAT = 'origami1829-design';
 export const DESIGN_VERSION = 1;
@@ -310,7 +194,7 @@ export function deserializeDesign(sculpture: Sculpture, raw: unknown): LoadedDes
   const startingPoint: StartingPoint = f.startingPoint === 'neutral' ? 'neutral' : 'current';
   const reference = f.reference?.offsets
     ? fromTriples(f.reference.offsets, sculpture.count, 'reference.offsets')
-    : startingOffsets(sculpture, startingPoint);
+    : (startingPoint === 'current' ? sculpture.originalOffsets : sculpture.neutralOffsets).slice();
   const sources = (f.waves?.sources ?? []).map(deserializeSource);
   const board = f.board as BoardSettings;
   const fallback = importedBoard(sculpture);

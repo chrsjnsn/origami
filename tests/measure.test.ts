@@ -1,68 +1,66 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { presentationEnvelope, borderReport, importedBoard, fitBoard } from '../src/core/board';
-import { GridStencils, REFERENCE_LAMBDA, solveSmoothing } from '../src/core/smoothing';
-import { StudioModel } from '../src/core/studio';
-import { defaultBrush } from '../src/core/brushes';
+import { borderReport, importedBoard, presentationEnvelope } from '../src/core/board';
 import { validateShells } from '../src/core/validation';
-import { loadJson, loadSculpture, innerRuleError } from './helpers';
+import { amplitudes, spacingFor, STYLE_DEFAULTS, STYLES, type StyleId, VariationEngine } from '../src/core/variations';
+import { innerRuleError, loadSculpture } from './helpers';
 
 /** Writes measured numbers used in docs/VERIFICATION.md to test-output/measurements.json. */
 it('measure', () => {
   const s = loadSculpture();
-  const m = new StudioModel(s);
-  const p = m.getPose();
-  const env = presentationEnvelope(s, p.outer, p.inner);
+  const engine = new VariationEngine(s);
+  const original = s.shellVertices(s.tipsFromOffsets(s.originalOffsets));
+  const env = presentationEnvelope(s, original.outer, original.inner);
   const b = s.data.evaluatedEnvelopeMm.outer;
   const t0 = performance.now();
-  let v = validateShells(s, p.outer, p.inner);
-  for (let k = 0; k < 9; k++) v = validateShells(s, p.outer, p.inner);
+  let v = validateShells(s, original.outer, original.inner);
+  for (let k = 0; k < 9; k++) v = validateShells(s, original.outer, original.inner);
   const fullMs = (performance.now() - t0) / 10;
-  const t1 = performance.now();
-  for (let k = 0; k < 60; k++) { m.setPhase(k * 0.1); m.getPose(); }
-  const poseMs = (performance.now() - t1) / 60;
-  // Reproduce the previous X/Y refinement from the manual original with the same operator.
-  const blender = loadJson('public/assets/sculpture-blender.json');
-  const grid = new GridStencils(s.cols, s.rows);
-  const n = s.count;
-  const x0 = new Float64Array(n * 3);
-  for (const bp of blender.pieces) {
-    const i = s.ids.indexOf(bp.id);
-    for (let k = 0; k < 3; k++) x0[i * 3 + k] = bp.outerProps.wave_original_tip_mm[k] - s.anchors[i * 3 + k];
-  }
-  const x = x0.slice();
-  const lo = x0.map((v) => v - 5), hi = x0.map((v) => v + 5);
-  const all = Array.from({ length: n }, (_, i) => i);
-  for (const axis of [0, 1]) solveSmoothing(grid, x, x0, all, axis, REFERENCE_LAMBDA, 4000, { lo, hi });
-  let repro = 0;
-  for (let i = 0; i < n; i++) for (const k of [0, 1]) repro = Math.max(repro, Math.abs(x[i * 3 + k] - s.originalOffsets[i * 3 + k]));
-  const fitted = fitBoard(importedBoard(s), env);
-  // Same stroke sampled at different frame rates.
-  const stroke = (fps: number) => {
-    const sm = new StudioModel(s);
-    sm.beginStroke(defaultBrush('height'), 300, 300, 0);
-    for (let t = 1 / fps; t <= 1 + 1e-9; t += 1 / fps) sm.strokeTo(300 + 500 * t, 300 + 200 * t, t);
-    sm.endStroke();
-    return sm.getPose().tips.slice();
+
+  // Pattern statistics at each style's starting settings, compared with the original.
+  const stats = (off: Float64Array) => {
+    let open = [Infinity, -Infinity], z = [Infinity, -Infinity], step = 0;
+    for (let i = 0; i < s.count; i++) {
+      const p = -(off[i * 3] + off[i * 3 + 1]) / Math.SQRT2;
+      open = [Math.min(open[0], p), Math.max(open[1], p)];
+      const h = s.anchors[i * 3 + 2] + off[i * 3 + 2];
+      z = [Math.min(z[0], h), Math.max(z[1], h)];
+      const c = i % s.cols, r = Math.floor(i / s.cols);
+      for (const [dc, dr] of [[1, 0], [0, 1]]) {
+        if (c + dc < s.cols && r + dr < s.rows) {
+          const j = (r + dr) * s.cols + c + dc;
+          step = Math.max(step, Math.hypot(off[i * 3] - off[j * 3], off[i * 3 + 1] - off[j * 3 + 1]));
+        }
+      }
+    }
+    return { diagonalLeanMm: open, tipHeightMm: z, neighborLeanStepMm: step };
   };
-  const r30 = stroke(30), r60 = stroke(60), r144 = stroke(144);
-  let d3060 = 0, d60144 = 0, peak = 0;
-  for (let j = 0; j < r30.length; j++) {
-    d3060 = Math.max(d3060, Math.abs(r30[j] - r60[j]));
-    d60144 = Math.max(d60144, Math.abs(r60[j] - r144[j]));
-    peak = Math.max(peak, Math.abs(r60[j] - s.anchors[j] - s.originalOffsets[j]));
+  const styles: Record<string, unknown> = { original: stats(s.originalOffsets) };
+  const off = new Float64Array(s.count * 3);
+  let evalMs = 0;
+  for (const st of STYLES.filter((x) => x.id !== 'original')) {
+    const id = st.id as Exclude<StyleId, 'original'>;
+    const vv = { style: id, seed: 1, ...STYLE_DEFAULTS[id] };
+    const t1 = performance.now();
+    for (let k = 0; k < 100; k++) engine.offsets(vv, k * 0.016, off);
+    evalMs = Math.max(evalMs, (performance.now() - t1) / 100);
+    engine.offsets(vv, 0, off);
+    styles[id] = { ...stats(off), spacingMm: spacingFor(vv.scale), amplitudesAtFullIntensity: amplitudes({ ...vv, intensity: 1 }, 1) };
   }
+  const t2 = performance.now();
+  for (let k = 0; k < 60; k++) s.shellVertices(s.tipsFromOffsets(engine.offsets({ style: 'drift', seed: 1, ...STYLE_DEFAULTS.drift }, k * 0.016, off)));
+  const poseMs = (performance.now() - t2) / 60;
+
   const out = {
-    strokeFrameRate: { maxChangeMm: peak, diff30vs60Mm: d3060, diff60vs144Mm: d60144 },
-    xyRefinementReproductionMaxErrorMm: repro,
-    fitBoardFromBrowserEnvelopeMm: [fitted.width, fitted.height],
     envelopeBrowserMm: env,
     envelopeBlenderEvaluatedMm: b,
     envelopeDiffMm: { minX: env.minX - b[0][0], minY: env.minY - b[0][1], maxX: env.maxX - b[1][0], maxY: env.maxY - b[1][1] },
     borderImported: borderReport(importedBoard(s), env),
-    innerRule: innerRuleError(s, p.outer, p.inner),
+    innerRule: innerRuleError(s, original.outer, original.inner),
     validation: { issues: v.issues, pairsTested: v.pairsTested, avgFullCheckMs: fullMs },
-    poseEvalMs: poseMs,
+    styles,
+    variationEvalMsMax: evalMs,
+    variationPoseMs: poseMs,
     medianHeight: s.medianHeight,
   };
   mkdirSync('test-output', { recursive: true });

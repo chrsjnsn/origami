@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import './styles.css';
 import { Sculpture, type CanonicalSculpture } from './core/sculpture';
-import { StudioModel } from './core/studio';
 import type { Presentation } from './render/presentation';
 import { Viewer } from './render/viewer';
 import { App } from './ui/app';
@@ -21,25 +20,23 @@ async function boot(): Promise<void> {
   ]);
 
   const sculpture = new Sculpture(data);
-  const model = new StudioModel(sculpture);
   const viewer = new Viewer(document.getElementById('viewer')!, sculpture, presentation, grain);
-  viewer.setBoard(model.snap.board);
-  const pose = model.getPose();
-  viewer.setShells(pose.outer, pose.inner);
-  const app = new App(model, viewer);
+  const app = new App(sculpture, viewer);
 
   const reveal = () => document.getElementById('loading')?.classList.add('done');
   requestAnimationFrame(reveal);
   setTimeout(reveal, 400); // background tabs throttle animation frames
 
   // Verification and debugging hooks (used by the documented browser checks).
-  Object.assign(window, { __origami: { model, viewer, app, sculpture, THREE } });
+  Object.assign(window, { __origami: { viewer, app, sculpture, THREE } });
 
   if (new URLSearchParams(location.search).has('perf')) {
-    const out = document.getElementById('perf-readout')!;
+    const out = document.createElement('div');
+    out.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:60;font:12px ui-monospace,monospace;background:rgb(0 0 0/.7);color:#fff;padding:4px 8px;border-radius:6px;pointer-events:none';
+    document.body.append(out);
     setInterval(() => {
       const s = viewer.stats;
-      out.textContent = `render ${s.renderMs.toFixed(1)} ms · frame ${s.frameMs.toFixed(1)} ms · check ${app.validation ? app.validation.ms.toFixed(1) : '–'} ms`;
+      out.textContent = `render ${s.renderMs.toFixed(1)} ms · frame ${s.frameMs.toFixed(1)} ms · pixel ratio ${viewer.currentPixelRatio}`;
     }, 1000);
   }
 }

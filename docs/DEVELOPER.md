@@ -9,192 +9,162 @@ space is identical, so no axis swaps happen anywhere except the glTF export.
 Each piece `i` (index = row × 29 + col, IDs `C01-R01` … `C29-R18`) has four vertices in the original
 Blender order and three stored faces. Roles:
 
-* **corner**: the right-angle base vertex at the lower-left of the 50 mm cell
+* **corner**: the right-angle base vertex at the lower left of the 50 mm cell
 * **right**, **up**: the ends of the base diagonal (hypotenuse)
 * **apex**: the tip
 
 Faces: the base (corner, right, up) and two side faces (corner, right, apex) and (corner, up, apex).
-The hypotenuse face (right, up, apex) is open. Stored windings give outward normals (checked by a
-test). 520 pieces store the roles as (2, 0, 1, 3); C05-R03 and C05-R05 store them as (2, 3, 0, 1).
-Both orders are kept verbatim.
+The hypotenuse face (right, up, apex) is open and faces the (1, 1) diagonal. Stored windings give
+outward normals. World coordinates are evaluated in double precision from the saved float32 local
+coordinates and the shared object matrix.
 
-World coordinates are evaluated in double precision from the saved float32 local coordinates and
-the shared object matrix (a 90° rotation about X).
-
-## One design state
-
-```
-tip_i = anchor_i + base_i + wave_i(phase)
-```
-
-* `anchor_i`: fixed base-grid anchor, the centroid of the piece's triangular base (z ≈ 0).
-* `base_i`: the editable offsets (a Float64Array of 522 × 3). Initialized from the starting point,
-  replaced by *Keep this shape*, changed by brushes.
-* `wave_i`: the sum of all wave sources, **sampled at `anchor_i`**, never at a displaced tip.
-
-The snapshot (`DesignSnapshot`) also holds the sources, the global phase, the board, the kept-shape
-recipes and the restore reference. Outer shells, inner shells, validation, envelopes, saved files
-and exports are all derived from it on demand; nothing else is stored.
-
-*Current sculpture* uses `base = tip_imported − anchor`. *Neutral pattern* uses
-`base = (0, 0, h_med − anchor_z)` with `h_med` = the median imported tip height (47.0343 mm).
+A pose is a set of tip offsets from fixed anchors (the base centroids): `tip_i = anchor_i + offset_i`.
+Bases never move. Inner shells always follow the rule below.
 
 ## Inner rule
 
 For diagonal endpoints R and U, M = (R + U) / 2 and for every outer vertex V:
 
 ```
-inner = M + 0.75 (V − M)
+inner = M + 0.75 (V - M)
 ```
 
-`Sculpture.shellVertices` applies it every time shells are derived (edits, animation frames,
-smoothing, undo, load, export). The inner diagonal endpoints are M ± 0.375 (U − R), so both
-diagonals are collinear and share their midpoint. Because M lies on the closed outer
-tetrahedron and the rule is a contraction toward it, the inner shell always lies inside the outer
-shell's convex hull.
+`Sculpture.shellVertices` applies it every time shells are derived. Both diagonals are collinear and
+share their midpoint, and the inner shell always lies inside the outer shell's convex hull.
 
-## Wave sources
+## Pattern variations (`src/core/variations.ts`)
 
-For a source at c with height H, lean L, spacing λ, reach R, speed k and timing offset δ, at global
-phase Φ:
+A variation is `{ style, intensity, scale, flow, seed }` plus a moment `t` (seconds). *Original*
+returns the imported offsets. Every other style is a small recipe of wave components, generated
+deterministically from the style and seed (mulberry32), and evaluated at the fixed anchors:
 
 ```
-local phase  φ = k Φ + δ
-falloff      E(r) = S(1 − r/R),  S(t) = 6t⁵ − 15t⁴ + 10t³  (E = 1 when R is "whole board")
-
-ripple:      r = |p − c|,  s = 2π r / λ − φ,  u = (p − c) / √(r² + ε²),  ε = λ / 6
-traveling:   d = (cos θ, sin θ),  s = 2π (p − c)·d / λ − φ,  u = d,  E uses r = |p − c|
-
-Δz  = E H sin s
-Δxy = E L cos s · u
+spacing λ   = 240 · (820 / 240)^scale  mm
+phase       φ_c = phase0_c + speed_c · (2π / 24 s) · t
+traveling   s = k_c (2π/λ) (q - c)·d_c - φ_c,       u = d_c
+ripple      s = k_c (2π/λ) |q - c| - φ_c,           u = (q - c) / sqrt(r² + (λ/6)²)
+spiral      ripple + arms · atan2(q - c), faded near the center
+dune        s ← s - a sin s  (steep lee side)
+height      z = Σ w_c E_c sin s / N,   lean ℓ = Σ w_c E_c cos s · u / N
+tip         (anchor_xy + L ℓ,  46 mm + H z)
 ```
 
-`u` fades smoothly to zero at a ripple's center, so there is no division by zero and no flip. The
-quintic falloff has zero first and second derivatives at the center and at the reach. Spacing is
-limited to at least 200 mm (four grid samples per wavelength on the 50 mm grid). Speeds are
-multiples of 0.25, so all sources return to their start after `q` global turns (`loopTurns`); the
-scrubber covers that loop and playback wraps the phase inside it. Height and lean ranges are
-±30 mm (±60 mm with *Extended ranges*).
+`q` is the anchor bent by the flow warp: two slow sine fields displace the sampling point by up to
+`0.2 λ · flow` (warp wavelength 2.3 λ, drifting once a minute). `E_c` is a quintic falloff for
+blooms, `N` the total weight (blooms normalize by local coverage). Height and lean come from the
+same wave, as in the original: tips lean with the slope of the crest.
 
-The pose depends only on the stored phase, so pause, scrubbing, saving and loading are exact.
-*Keep this shape* sets `base ← base + wave(Φ)`, stores the previous base and the sources as a recipe,
-and sets the sources' amounts to zero.
+| Style | Recipe |
+| --- | --- |
+| Drift | two traveling waves near the (1, 1) diagonal, the second longer and turned 12–24° |
+| Ripple | a ripple anywhere on the board plus a weaker one in the opposite corner |
+| Dunes | a sharp-crested traveling wave near vertical plus a long swell along the diagonal |
+| Crosscurrent | two traveling waves about 90° apart (near X and Y), running in opposite directions |
+| Bloom | 3–5 ripples with limited reach, spaced at least 0.3 × board width, over a faint swell |
+| Spiral | a 2–4 armed spiral near the center |
 
-## Brushes
+Why the diagonal matters: the open face of every pyramid faces (1, 1). Leaning a tip toward the
+lower left tilts the opening toward the viewer and shows the inside color; leaning toward the upper
+right hides it. Styles are therefore oriented so their leans have a large component along that
+diagonal, which is what makes colored bands appear (the original works the same way).
 
-Weights come from the fixed anchors: `w_i = S(1 − |anchor_i − c| / R)`.
+### Geometry limits
 
-Time integration is independent of frame rate: a `Stroke` integrates pointer samples in fixed
-1/120 s sub-steps, interpolating the brush position inside each sample interval. Holding still keeps
-painting (the frame loop feeds the last position). Sampling a stroke at 30, 60 and 144 fps gives the
-same result to about 1e-14 mm.
-
-* Height / X lean / Y lean: `offset_axis += sign · 3 · strength · dt · w_i` (mm/s), other axes
-  untouched. New values are clamped to the creative bounds (tip height 10–110 mm, lean ±65 mm; or
-  3–160 mm and ±110 mm extended) but values already outside the bounds are never snapped.
-* Restore: `offset += (1 − e^(−0.5·strength·dt)) w_i (target − offset)`.
-* Smooth: see below, blended by `(1 − e^(−0.6·strength·dt)) w_i`.
-
-## Smoothing (reference model)
-
-Per coordinate, minimize
+Amplitudes are derived so the pattern cannot produce geometry problems:
 
 ```
-Σ_i (x_i − x0_i)²  +  λ Σ_stencils (w (x_a − 2 x_b + x_c))²
+H = intensity · 24 mm
+L = intensity · min(62 mm, 56 mm / (k_max · warp_gain · (2π/λ) · 50 mm))
 ```
 
-with second differences along rows and columns (w = 1) and both diagonals (w = 0.35 applied before
-squaring). The reference λ is 0.12; the Smoothness control maps 0…1 to λ = 0.12 · 2^(4(s − 0.5)).
-The normal equations `(I + λK) x = x0` are solved by Gauss–Seidel with only the pieces under the brush
-as unknowns; all other pieces are held fixed as boundary values, so nothing outside the footprint
-moves. The operator is validated by reproducing the earlier X/Y refinement: solving the global
-problem from the manual original tips with λ = 0.12 and ±5 mm bounds matches the imported tips to
-7.3e-5 mm.
+The second term bounds how much the lean can change between adjacent pieces (50 mm apart) to about
+56 mm; `k_max` is the style's highest local wavenumber and `warp_gain = 1 + 2π · 0.2 · flow / 2.3`
+accounts for the flow warp compressing waves locally. After that, every tip is softly limited
+(smooth `tanh` knees, no hard corners): height into [22, 76] mm, lean magnitude to 62 mm, and x/y
+to the board minus its 2-inch border (+1.5 mm for paper thickness).
 
-## Validation
+The constants were set by sweeping random variations: a neighbor step of 66 mm produced intersections
+in 17 of 2,000 variations; 56 mm produced none in 10,000 (see VERIFICATION.md). Heights stay well
+clear of the checks (the lowest tip is 22 mm; warnings start at 6 mm).
 
-`validateShells` checks design surfaces and reports; it never edits.
+### Safety net
 
-* Finite coordinates; base vertices bit-identical to the import; inner rule within 1e-9 mm.
-* Tip height: error at z ≤ 0, warning under 6 mm.
-* Side faces: error below 2 mm² area, warning when an angle is under 4°.
-* Crossings: every pair of pieces within 3 cells whose bounding boxes overlap is tested with all
-  6 × 6 triangle pairs (outer and inner faces of both). Two triangles cross when an edge of one
-  passes strictly through the interior of the other (barycentric margin 1e-7, plane tolerance
-  1e-6 mm). Contacts at shared grid corners and coplanar base contacts do not count.
+`makeSafe` runs the complete geometry check (`validateShells`) on a pose and, if anything is
+reported (error or warning), bisects a strength factor that scales the pattern toward the calm rest
+pose until the pose is clean. The page calls it 250 ms after every change settles and whenever
+motion pauses. It is not expected to trigger; a test forces it by loosening the limits.
 
-A complete check covers 1,949 candidate pairs in about 7–15 ms.
+## Looks and saving (`src/core/look.ts`)
 
-## Presentation thickness
+A look is `{ variation, colors: { outer, inner, board }, time }` (colors as sRGB hex). Saved
+designs store the look plus a 480 × 320 JPEG thumbnail in `localStorage`
+(`ow.designs.v1`, `ow.design.v1.<id>`); the look being edited is kept in `ow.current.v1`. All
+reads go through `sanitizeLook`, which clamps and defaults every field.
 
-`solidify.ts` replicates Blender's *Simple* Solidify without even offset: each vertex moves along its
-angle-weighted vertex normal. Outer shells (offset +1) keep the design surface and add 0.45 mm
-outward; inner shells (offset −1) extend 0.25 mm inward, so the blue base sits above the black base
-while both design triangles stay on z = 0. Each shell becomes 12 flat-shaded triangles (both sides
-plus rims on the open edges). The board's front face is at z = −0.55 mm, below the outer stock
-(−0.45 mm), and every surface is single-sided with outward normals, so coincident base planes
-never z-fight. The envelope of this geometry matches Blender's evaluated envelope within 0.05 mm
-(the difference is Blender's 0.055 mm bevel).
+Paper colors: the hex color is the Principled Base Color. The Blender color ramp spans 0.74× to
+1.17× of it and the baked grain multiplies the upper stop by 0.632–1.0, so the three.js material
+color is the linear base color × 1.17. `#121416` and `#007aff` reproduce the original ramps exactly.
 
-**Fit board with 2-inch border**: `width = maxX − minX + 2 × 50.8`, likewise for height, centered on the
-envelope of the thickened outer and inner shells.
+## Motion and the play bar
 
-## Rendering
+While animating, `look.time` advances with real time and the pose is recomputed every frame
+(about 2 ms for evaluation plus rebuilding 1,044 thickened shells). `liveTime` is the newest moment
+reached; the play bar spans the last 60 seconds before it. Going back, scrubbing and pausing only
+change `look.time`, and because the pose depends only on the moment, every earlier moment is
+reproduced exactly.
 
-* `MeshPhysicalMaterial` with the Blender values: roughness 0.88 (black) and 0.72 (blue),
-  specular intensity 0.44 (Blender *Specular IOR Level* 0.22), base color the upper stop of the color
-  ramp multiplied by the baked grain (0.632–1.0, the ramp's proportional range), and the grain as a
-  bump map with box-projected UVs.
-* Lighting: an environment map built from the Blender world color and the three disk softboxes at
-  their true directions and angular sizes (PMREM), three directional lights at the Blender light
-  positions (the key light casts a 4096² PCF shadow), a lit backdrop plane, GTAO ambient occlusion
-  at half resolution, and linear tone mapping (Blender "Standard"), which keeps #007AFF saturated.
-* The balance was tuned by comparing 10th, 50th and 90th percentile colors of black and blue pixels
-  with the reference renders (see VERIFICATION.md).
-* Dynamic resolution: the pixel ratio starts at min(devicePixelRatio, 1.5) and steps by 0.25
-  between 1.0 (0.75 on touch devices) and that maximum based on the measured frame interval.
+## Viewer
 
-## Design file (`origami1829-design`, version 1)
+* Pixel ratio: `min(devicePixelRatio, 1.5)` on desktop and `min(devicePixelRatio, 2)` on touch
+  devices. It is lowered at most twice (never below 1.0 desktop / 1.5 phones) and only if 90
+  consecutive rendered frames average over 45 ms (well below 30 fps); it never goes back up. Earlier versions
+  stepped the resolution up and down with the frame rate, which on phones (30 fps Low Power Mode,
+  throttled browsers) drove it to 0.75× and reallocated the render targets repeatedly: that was the
+  pixelation and blinking reported on iPhone.
+* Resizing renders immediately so a cleared canvas is never shown. Height changes under 120 px
+  (mobile browser toolbars) do not re-frame the camera.
+* The page is fixed and never scrolls; the canvas has `touch-action: none`, so one finger always
+  turns the artwork and two fingers zoom and move it (standard three.js OrbitControls).
+* Framing uses screen insets (top bar, buttons, the customize panel or bottom sheet, the play bar)
+  so the artwork is centered in the free area; changing insets animates the camera.
+* `snapshot(w, h, view)` renders a framed image at an exact size synchronously and restores the
+  on-screen view before the browser shows another frame (thumbnails and *Save image*).
+* Rendering: `MeshPhysicalMaterial` with the Blender values, an environment map built from the
+  world color and the three softboxes, a PCF-shadowed key light (4096², 2048² on phones), GTAO
+  ambient occlusion at half resolution (8 samples on phones), linear tone mapping (Blender
+  "Standard").
+
+## Design file for Blender (`origami1829-design`, version 1)
+
+The *For Blender* download contains `design.json`, written by `lookDesignFile`: the pose as
+`baseOffsets` with no wave sources, the imported board, the geometry check result, plus
+`colors` and `look`. `tools/blender/rebuild_design.py` rebuilds the scene; when `colors` is present
+it moves each paper material's color ramp to the chosen color (keeping the 0.74× / 1.17× stops) and
+gives the board its own material.
 
 ```jsonc
 {
-  "format": "origami1829-design", "version": 1, "name": "…", "savedAt": "…",
-  "units": "mm", "coordinateSystem": "…",
-  "source": { "file": "origami1829-final-vision.blend", "sha256": "239c2e87…" },
-  "startingPoint": "current" | "neutral",
-  "pieceIds": ["C01-R01", …],               // 522, row-major
-  "baseOffsets": [[dx, dy, dz], …],         // committed offsets from the base centroids
-  "reference": { "label": "…", "offsets": [[…], …] },
-  "waves": { "sources": [{ "kind": "ripple", "x", "y", "height", "lean", "spacing",
-             "reach": 900 | "board", "direction", "speed", "phaseOffset", "enabled" }],
-             "phase": 2.3, "loopTurns": 1 },
+  "format": "origami1829-design", "version": 1, "name": "Drift", "savedAt": "…",
+  "pieceIds": ["C01-R01", …],
+  "baseOffsets": [[dx, dy, dz], …],     // tip - base centroid, mm
+  "waves": { "sources": [], "phase": 0, "loopTurns": 1 },
   "board": { "width", "height", "centerX", "centerY", "thickness", "topZ", "border", "origin" },
-  "kept": [{ "id", "at", "label", "sources": […], "phase", "baseBefore": [[…], …] }],
-  "pose": { "tips": [[x, y, z], …] },       // evaluated outer tips, for checking and other tools
-  "validation": { "passed", "errors", "warnings", "issues": […], "note" }
+  "pose": { "tips": [[x, y, z], …] },
+  "validation": { "passed", "errors", "warnings", "issues", "note" },
+  "colors": { "outer": "#121416", "inner": "#ff5a4e", "board": "#5b3f2c" },
+  "look": { "variation": { … }, "colors": { … }, "time": 37.5 }
 }
 ```
-
-Loading rebuilds the pose from `baseOffsets`, `waves` and the phase, then compares it with
-`pose.tips` and reports any difference.
 
 ## GLB mapping
 
 Board point (x, y, z) mm → glTF (x, z, −y) / 1000 m. Blender's importer converts glTF Y-up to
-Z-up, so imported objects land at the original Blender coordinates with identity transforms.
-Nodes are named by piece ID (`C01-R01`, `C01-R01 INNER 75%`) and carry `extras` (piece ID, role,
-apex index, diagonal indices, diagonal midpoint).
-
-## Blender reconstruction
-
-`tools/blender/rebuild_design.py` rebuilds the scene from `sculpture.json`,
-`sculpture-blender.json`, `presentation.json` and a design file. For unedited tips it reuses the
-saved float32 local coordinates bit for bit; edited tips go through the inverse object matrix in
-double precision. Inner shells are always recomputed with the 75% rule. `--compare other.blend`
-reports vertex differences against another file.
+Z-up, so imported objects land at the original Blender coordinates. Nodes are named by piece ID
+(`C01-R01`, `C01-R01 INNER 75%`); materials are named after the paper colors.
 
 ## Debug hooks
 
-`window.__origami` exposes `model`, `viewer`, `app` and `sculpture`. `__origami.app.selfTest()`
-checks the live pose (inner rule, fixed bases), compares the GPU vertex buffers with geometry rebuilt
-from the model, and round-trips a GLB export. Add `?perf` to the URL for a frame-time readout.
+`window.__origami` exposes `viewer`, `app`, `sculpture` and `THREE`. `__origami.app.selfTest()`
+checks the pose on screen (inner rule, fixed bases), compares the GPU vertex buffers with geometry
+rebuilt from the model, round-trips a GLB export and runs the geometry check. Add `?perf` to the URL
+for a frame-time readout.

@@ -5,8 +5,8 @@
  *   npm run verify-blender
  *
  * 1. Writes design fixtures with the same code the browser uses (tests/fixtures.test.ts).
- * 2. Rebuilds the unedited and an edited design in Blender with rebuild_design.py and compares
- *    every shell with the original .blend.
+ * 2. Rebuilds the unedited and an edited design (a pattern variation in custom colors) in
+ *    Blender with rebuild_design.py and compares every shell with the original .blend.
  * 3. Imports the edited GLB export into Blender and compares it with the design file.
  * Results are written to test-output/blender-roundtrip.json.
  */
@@ -45,6 +45,12 @@ results.glb_edited = report(
 );
 
 const o = results.rebuild_original, e = results.rebuild_edited, g = results.glb_edited;
+// The edited fixture uses coral inside paper on a walnut board (see tests/fixtures.test.ts).
+const srgbToLinear = (hex) => [1, 3, 5].map((k) => {
+  const c = parseInt(hex.slice(k, k + 2), 16) / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+});
+const colorErr = (upper, hex) => Math.max(...srgbToLinear(hex).map((c, k) => Math.abs(c * 1.17 - upper[k])));
 const checks = {
   'unedited rebuild: outer shells identical to the original': o.compare.outerMaxDiffMm === 0,
   'unedited rebuild: inner shells within float32 of the original (< 0.001 mm)': o.compare.innerMaxDiffMm < 1e-3,
@@ -53,6 +59,8 @@ const checks = {
   'edited rebuild: inner = M + 0.75 (V - M) (< 0.001 mm)': e.innerRuleMaxErrorMm < 1e-3,
   'GLB import: 522 pieces, topology preserved': g.piecesFound === 522 && g.topologyPreserved,
   'GLB import: tips and 75% rule (< 0.001 mm)': g.tipMaxErrorMm < 1e-3 && g.innerRuleMaxErrorMm < 1e-3,
+  'edited rebuild: chosen paper colors applied (inside and board)':
+    colorErr(e.materials.inner.rampUpperLinear, '#ff5a4e') < 0.01 && colorErr(e.materials.board.rampUpperLinear, '#5b3f2c') < 0.01,
 };
 results.checks = checks;
 writeFileSync(join(root, 'test-output/blender-roundtrip.json'), JSON.stringify(results, null, 2));

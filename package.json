@@ -1,5 +1,5 @@
 {
-  "name": "origami1829-studio",
+  "name": "origami-waves",
   "private": true,
   "version": "1.0.0",
   "description": "Browser viewer and customization studio for the Origami 1829 paper sculpture.",
@@ -11,8 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "prepare-assets": "node tools/prepare-assets.mjs",
-    "verify-assets": "node tools/verify-assets.mjs",
-    "verify-blender": "node tools/verify-blender-roundtrip.mjs"
+    "verify-blender": "node tools/verify-blender-roundtrip.mjs",
+    "sweep": "SWEEP=${SWEEP:-10000} vitest run tests/sweep.test.ts"
   },
   "dependencies": {
     "three": "^0.186.1"

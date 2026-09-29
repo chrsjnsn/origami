@@ -4,337 +4,164 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light" />
-  <meta name="description" content="Origami 1829: 522 folded paper pyramids in matte black and vivid blue. Explore the sculpture in 3-D and shape your own version." />
-  <title>Origami 1829</title>
+  <meta name="theme-color" content="#c9d1dc" />
+  <meta name="description" content="Origami Waves: 522 folded paper pyramids in matte black and vivid blue. Explore the artwork in 3-D and try it in your own colors and patterns." />
+  <title>Origami Waves</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23121416'/%3E%3Cpath d='M8 24 8 8 24 24Z' fill='%23007AFF'/%3E%3C/svg%3E" />
 </head>
-<body>
+<body data-page="home">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
-      <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3m3-3 3 3M12 21l-3-3m3 3 3-3M3 12l3-3m-3 3 3 3M21 12l-3-3m3 3-3 3"/></symbol>
-      <symbol id="i-waves" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="9"/></symbol>
-      <symbol id="i-height" viewBox="0 0 24 24"><path d="M12 19V5m0 0-5 5m5-5 5 5M5 21h14"/></symbol>
-      <symbol id="i-leanx" viewBox="0 0 24 24"><path d="M3 12h18M3 12l4-4m-4 4 4 4m14-4-4-4m4 4-4 4"/></symbol>
-      <symbol id="i-leany" viewBox="0 0 24 24"><path d="M12 3v18M12 3 8 7m4-4 4 4m-4 14-4-4m4 4 4-4"/></symbol>
-      <symbol id="i-smooth" viewBox="0 0 24 24"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></symbol>
-      <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
       <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
       <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5m5 5H10a6 6 0 0 0 0 12h3"/></symbol>
-      <symbol id="i-compare" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-reset-cam" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><circle cx="12" cy="12" r="2.5"/></symbol>
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></symbol>
       <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor" stroke="none"/></symbol>
-      <symbol id="i-keep" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
-      <symbol id="i-reset-cam" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><circle cx="12" cy="12" r="2.5"/></symbol>
-      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
-      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></symbol>
-      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17v.5"/></symbol>
-      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
-      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9m0 0-4 4m4-4 4 4M5 4h14"/></symbol>
+      <symbol id="i-back5" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/><text x="12.2" y="15.6" text-anchor="middle" font-size="8.5" font-weight="700" fill="currentColor" stroke="none" font-family="-apple-system, system-ui, sans-serif">5</text></symbol>
+      <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c3.5 0 5.5 10 9 10H21m0 0-3-3m3 3-3 3M3 17h3.5c1.3 0 2.4-1.3 3.4-3M21 7h-5.5c-1.3 0-2.4 1.3-3.4 3M21 7l-3-3m3 3-3 3"/></symbol>
+      <symbol id="i-motion" viewBox="0 0 24 24"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4.5L6 21z"/></symbol>
       <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></symbol>
       <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
-      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
-      <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4m8-8 4 4-4 4M14 5l-4 14"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     </defs>
   </svg>
 
-  <header class="site-header">
-    <a class="brand" href="#top" aria-label="Origami 1829 home">
+  <div class="viewer" id="viewer" aria-label="3-D view of the artwork. Drag to turn, scroll or pinch to zoom.">
+    <div class="viewer-loading" id="loading" role="status">
+      <div class="loading-mark"></div>
+      <p>Unfolding 522 pyramids…</p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#" id="brand" aria-label="Origami Waves, main page">
+      <svg class="i back-i" aria-hidden="true"><use href="#i-back"/></svg>
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#121416"/><path d="M8 24 8 8 24 24Z" fill="#007AFF"/></svg>
-      <span>Origami 1829</span>
+      <span>Origami Waves</span>
     </a>
-    <nav class="site-nav" aria-label="Sections">
-      <a href="#about">The piece</a>
-      <a href="#studio" data-action="customize">Customize</a>
-      <a href="#designs">Designs</a>
-    </nav>
   </header>
 
-  <main id="top">
-    <section class="stage" id="stage" aria-label="3-D sculpture viewer">
-      <div class="viewer" id="viewer">
-        <div class="viewer-loading" id="loading" role="status">
-          <div class="loading-mark"></div>
-          <p>Unfolding 522 pieces…</p>
-        </div>
+  <!-- ============================================================ main page -->
+  <div class="home-ui" id="home-ui">
+    <button class="round-btn info-btn" id="info-btn" type="button" aria-label="About the artwork" aria-expanded="false" aria-controls="info-panel">
+      <svg class="i"><use href="#i-info"/></svg>
+    </button>
+    <div class="views" role="group" aria-label="Views">
+      <button type="button" data-view="front" aria-pressed="true">Front</button>
+      <button type="button" data-view="angled" aria-pressed="false">Angled</button>
+      <button type="button" data-view="detail" aria-pressed="false">Detail</button>
+      <button type="button" class="icon-only" data-view="reset" aria-label="Reset camera" title="Reset camera"><svg class="i"><use href="#i-reset-cam"/></svg></button>
+    </div>
+    <a class="cta" href="#customize" id="customize-btn">Customize <svg class="i"><use href="#i-arrow"/></svg></a>
+    <p class="hint" id="hint">Drag to turn · Scroll or pinch to zoom</p>
+  </div>
 
-        <div class="hud hud-top-left">
-          <div class="design-toggle" id="design-toggle" hidden role="group" aria-label="Show">
-            <button type="button" data-show="original">Original</button>
-            <button type="button" data-show="design" aria-pressed="true">Your design</button>
-          </div>
-          <div class="badge" id="compare-badge" hidden>Showing the original</div>
-        </div>
+  <aside class="info-panel" id="info-panel" aria-labelledby="info-title" aria-hidden="true">
+    <div class="info-head">
+      <h2 id="info-title">Origami Waves</h2>
+      <button class="round-btn small" type="button" id="info-close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="lead">522 folded paper pyramids in matte black, each open on one side to reveal a smaller pyramid of vivid blue paper inside. The tips rise and lean in slow waves, so bands of blue appear and disappear as you move around the piece.</p>
+    <dl class="facts" id="facts"></dl>
+    <p class="note">Drag to turn the artwork, scroll or pinch to zoom, and right-drag or use two fingers to move it.</p>
+    <a class="cta cta-block" href="#customize">Try your own colors and patterns <svg class="i"><use href="#i-arrow"/></svg></a>
+  </aside>
 
-        <div class="hud hud-caption" id="caption">
-          <p class="eyebrow">Paper sculpture</p>
-          <h1>Origami 1829</h1>
-          <p class="caption-meta" id="caption-meta">522 folded pyramids · 1576 × 1041 mm</p>
-        </div>
+  <!-- ============================================================ customize page -->
+  <div class="playbar" id="playbar" hidden>
+    <button class="pb-btn" type="button" id="pb-back" aria-label="Back 5 seconds" title="Back 5 seconds"><svg class="i"><use href="#i-back5"/></svg></button>
+    <button class="pb-btn pb-main" type="button" id="pb-play" aria-label="Pause"><svg class="i"><use href="#i-pause"/></svg></button>
+    <div class="pb-track">
+      <input type="range" id="pb-scrub" min="0" max="1000" step="1" value="1000" aria-label="Moment in the last minute" />
+    </div>
+    <button class="pb-live" type="button" id="pb-live" title="Jump to now"><span class="dot"></span>Live</button>
+    <button class="pb-btn" type="button" id="pb-save" aria-label="Save this moment" title="Save this moment"><svg class="i"><use href="#i-bookmark"/></svg></button>
+  </div>
 
-        <div class="hud hud-views" role="toolbar" aria-label="Camera views">
-          <button type="button" class="pill" data-view="front">Front</button>
-          <button type="button" class="pill" data-view="angled">Angled</button>
-          <button type="button" class="pill" data-view="detail">Detail</button>
-          <button type="button" class="pill icon-only" data-view="reset" title="Reset camera (0)" aria-label="Reset camera"><svg class="i"><use href="#i-reset-cam"/></svg></button>
-        </div>
-
-        <button type="button" class="hud hud-customize btn btn-primary" data-action="customize">
-          Customize <span aria-hidden="true">→</span>
-        </button>
-
-        <p class="hud hud-hint" id="hint"></p>
-        <div class="brush-label" id="brush-label" hidden></div>
-        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <aside class="studio" id="studio" aria-label="Customize" aria-hidden="true">
+    <button class="sheet-handle" type="button" id="sheet-handle" aria-label="Collapse panel" aria-expanded="true"><span></span></button>
+    <div class="studio-head">
+      <h2>Customize</h2>
+      <div class="head-actions">
+        <button class="icon-btn" type="button" id="undo" aria-label="Undo" title="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+        <button class="icon-btn" type="button" id="redo" aria-label="Redo" title="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
+        <button class="text-btn" type="button" id="reset">Reset</button>
       </div>
+    </div>
 
-      <div class="toolstrip" id="toolstrip" hidden>
-        <div class="tool-group" role="toolbar" aria-label="Tools">
-          <button type="button" class="tool" data-tool="navigate" title="Move view (hold Space)"><svg class="i"><use href="#i-move"/></svg><span>View</span></button>
-          <button type="button" class="tool" data-tool="waves" title="Wave sources (W)"><svg class="i"><use href="#i-waves"/></svg><span>Waves</span></button>
-          <span class="tool-sep" aria-hidden="true"></span>
-          <button type="button" class="tool" data-tool="height" title="Height brush (H)"><svg class="i"><use href="#i-height"/></svg><span>Height</span></button>
-          <button type="button" class="tool" data-tool="leanX" title="X lean brush (X)"><svg class="i"><use href="#i-leanx"/></svg><span>X lean</span></button>
-          <button type="button" class="tool" data-tool="leanY" title="Y lean brush (Y)"><svg class="i"><use href="#i-leany"/></svg><span>Y lean</span></button>
-          <button type="button" class="tool" data-tool="smooth" title="Smooth brush (S)"><svg class="i"><use href="#i-smooth"/></svg><span>Smooth</span></button>
-          <button type="button" class="tool" data-tool="restore" title="Restore brush (R)"><svg class="i"><use href="#i-restore"/></svg><span>Restore</span></button>
+    <div class="studio-scroll" id="studio-scroll">
+      <section class="block" aria-labelledby="colors-title">
+        <h3 id="colors-title">Colors</h3>
+        <div class="color-row" data-part="outer">
+          <span class="color-label">Pyramids</span>
+          <div class="swatches" role="radiogroup" aria-label="Pyramid color"></div>
         </div>
+        <div class="color-row" data-part="inner">
+          <span class="color-label">Inside</span>
+          <div class="swatches" role="radiogroup" aria-label="Inside color"></div>
+        </div>
+        <div class="color-row" data-part="board">
+          <span class="color-label">Board</span>
+          <div class="swatches" role="radiogroup" aria-label="Board color"></div>
+        </div>
+      </section>
 
-        <div class="tool-group playback" id="playback" aria-label="Wave playback">
-          <button type="button" class="round" id="play" title="Play / pause (P)" aria-label="Play"><svg class="i"><use href="#i-play"/></svg></button>
-          <label class="scrub">
-            <span class="sr-only">Wave phase</span>
-            <input type="range" id="phase" min="0" max="1000" step="1" value="0" />
+      <section class="block" aria-labelledby="pattern-title">
+        <h3 id="pattern-title">Pattern</h3>
+        <div class="styles" id="styles" role="radiogroup" aria-label="Pattern style"></div>
+        <p class="style-desc" id="style-desc"></p>
+        <div class="sliders" id="sliders">
+          <label class="slider">
+            <span class="slider-top"><span>Intensity</span><span class="ends">Calm · Bold</span></span>
+            <input type="range" id="intensity" min="0" max="1" step="0.01" />
           </label>
-          <output id="phase-out" class="mono">0%</output>
-          <button type="button" class="btn btn-small btn-primary" id="keep" title="Keep this shape (K)"><svg class="i"><use href="#i-keep"/></svg>Keep this shape</button>
+          <label class="slider">
+            <span class="slider-top"><span>Scale</span><span class="ends">Fine · Broad</span></span>
+            <input type="range" id="scale" min="0" max="1" step="0.01" />
+          </label>
+          <label class="slider">
+            <span class="slider-top"><span>Flow</span><span class="ends">Straight · Swirling</span></span>
+            <input type="range" id="flow" min="0" max="1" step="0.01" />
+          </label>
         </div>
-
-        <div class="tool-group actions">
-          <button type="button" class="round" id="undo" title="Undo (⌘Z)" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
-          <button type="button" class="round" id="redo" title="Redo (⇧⌘Z)" aria-label="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
-          <button type="button" class="round" id="compare" title="Hold to compare with the original (C)" aria-label="Hold to compare with the original"><svg class="i"><use href="#i-compare"/></svg></button>
-          <button type="button" class="status-pill" id="status-pill" data-status="ok"><svg class="i"><use href="#i-check"/></svg><span>Checking…</span></button>
-          <button type="button" class="btn btn-small btn-dark" data-action="done">Done</button>
+        <div class="pattern-actions">
+          <button class="btn" type="button" id="shuffle"><svg class="i"><use href="#i-shuffle"/></svg>Shuffle</button>
+          <button class="btn" type="button" id="animate" aria-pressed="false"><svg class="i"><use href="#i-motion"/></svg><span>Animate</span></button>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="about" id="about">
-      <div class="about-copy">
-        <p class="eyebrow">The piece</p>
-        <h2>Folded light, one pyramid at a time.</h2>
-        <p>
-          522 open paper pyramids stand on a 29 × 18 grid at a 50&nbsp;mm pitch. Each matte-black shell is paired
-          with a vivid blue shell exactly three quarters its size, tucked against the open side. As the tips rise
-          and lean in a slow wave, the blue appears and disappears behind the black folds.
-        </p>
-      </div>
-      <dl class="stats">
-        <div><dt>Pieces</dt><dd>522 <small>+ 522 blue</small></dd></div>
-        <div><dt>Grid</dt><dd>29 × 18 <small>50 mm pitch</small></dd></div>
-        <div><dt>Board</dt><dd id="stat-board">1576 × 1041 <small>mm</small></dd></div>
-        <div><dt>Tip heights</dt><dd id="stat-heights">27–71 <small>mm</small></dd></div>
-      </dl>
-    </section>
-
-    <section class="studio" id="studio" aria-labelledby="studio-title">
-      <div class="studio-intro" id="studio-intro">
-        <div>
-          <p class="eyebrow">Customize</p>
-          <h2 id="studio-title">Shape your own version.</h2>
-          <p>Send ripples across the grid, then refine individual areas with soft brushes. Every change moves the real
-            folded geometry, keeps the blue shells nested, and checks that neighboring pieces never pass through each other.</p>
-          <div class="intro-actions">
-            <button type="button" class="btn btn-primary btn-large" data-action="customize">Start customizing <span aria-hidden="true">→</span></button>
-            <button type="button" class="btn btn-large" id="resume-intro" hidden>Resume last session</button>
-          </div>
+      <section class="block" aria-labelledby="save-title">
+        <h3 id="save-title">Save</h3>
+        <button class="btn btn-primary btn-wide" type="button" id="save-design"><svg class="i"><use href="#i-bookmark"/></svg>Save design</button>
+        <div class="save-row">
+          <button class="btn" type="button" id="save-image"><svg class="i"><use href="#i-image"/></svg>Save image</button>
+          <button class="btn" type="button" id="save-blender"><svg class="i"><use href="#i-cube"/></svg>For Blender</button>
         </div>
-        <ul class="feature-list">
-          <li><svg class="i"><use href="#i-waves"/></svg><div><strong>Wave sources</strong><span>Place ripples or traveling waves, play them, and keep the shape you like.</span></div></li>
-          <li><svg class="i"><use href="#i-height"/></svg><div><strong>Brushes</strong><span>Height, lean, smooth, and restore, each one precise to its own axis.</span></div></li>
-          <li><svg class="i"><use href="#i-cube"/></svg><div><strong>Save and export</strong><span>Design files, images, and 3-D geometry that opens in Blender.</span></div></li>
-        </ul>
-      </div>
+        <p class="fine">Designs are saved in this browser only.</p>
+      </section>
 
-      <div class="studio-grid" id="studio-grid" hidden>
-        <!-- Tool settings -->
-        <article class="panel panel-tool" id="panel-tool" aria-live="polite">
-          <!-- Waves -->
-          <div class="tool-pane" data-pane="waves">
-            <header class="panel-head">
-              <h3>Wave sources</h3>
-              <div class="head-actions">
-                <button type="button" class="btn btn-small" id="add-ripple"><svg class="i"><use href="#i-plus"/></svg>Ripple</button>
-                <button type="button" class="btn btn-small" id="add-travel"><svg class="i"><use href="#i-plus"/></svg>Traveling wave</button>
-              </div>
-            </header>
-            <div class="chips" id="source-chips" role="listbox" aria-label="Wave sources"></div>
-            <p class="note" id="source-hint">Drag the handle on the artwork to move a source, or tap the board to place it. Raise Height or Lean to start the wave.</p>
-            <div class="fields" id="source-fields">
-              <div class="field">
-                <span class="field-label">Type</span>
-                <div class="segmented" id="src-kind" role="radiogroup">
-                  <button type="button" data-value="ripple" role="radio">Circular ripple</button>
-                  <button type="button" data-value="travel" role="radio">Traveling wave</button>
-                </div>
-              </div>
-              <label class="field slider" data-field="height"><span class="field-label">Height</span><input type="range" min="0" max="30" step="0.5" /><output class="mono"></output></label>
-              <label class="field slider" data-field="lean"><span class="field-label">Lean</span><input type="range" min="-30" max="30" step="0.5" /><output class="mono"></output></label>
-              <label class="field slider" data-field="spacing"><span class="field-label">Spacing</span><input type="range" min="200" max="1400" step="10" /><output class="mono"></output></label>
-              <label class="field slider" data-field="reach"><span class="field-label">Reach</span><input type="range" min="100" max="2000" step="10" /><output class="mono"></output></label>
-              <label class="field slider" data-field="direction"><span class="field-label">Direction</span><input type="range" min="0" max="359" step="1" /><output class="mono"></output></label>
-              <label class="field slider" data-field="speed"><span class="field-label">Speed</span><input type="range" min="-2" max="2" step="0.25" /><output class="mono"></output></label>
-              <label class="field slider" data-field="phaseOffset"><span class="field-label">Timing</span><input type="range" min="0" max="359" step="1" /><output class="mono"></output></label>
-              <div class="field-row">
-                <label class="check"><input type="checkbox" id="src-enabled" /> <span>Active</span></label>
-                <label class="check"><input type="checkbox" id="src-whole" /> <span>Reach the whole board</span></label>
-                <button type="button" class="btn btn-small btn-ghost danger" id="src-remove">Remove source</button>
-              </div>
-            </div>
-            <div class="field-row tempo">
-              <label class="field slider compact" data-field="tempo"><span class="field-label">Cycle time</span><input type="range" id="tempo" min="2" max="20" step="0.5" value="8" /><output class="mono" id="tempo-out">8 s</output></label>
-              <label class="check"><input type="checkbox" id="show-guides" checked /> <span>Show wave guides</span></label>
-            </div>
-          </div>
+      <section class="block" aria-labelledby="mine-title" id="mine-block">
+        <h3 id="mine-title">My designs</h3>
+        <div class="designs" id="designs"></div>
+        <p class="fine" id="designs-empty">Saved designs appear here.</p>
+      </section>
+    </div>
+  </aside>
 
-          <!-- Brushes -->
-          <div class="tool-pane" data-pane="brush" hidden>
-            <header class="panel-head">
-              <h3 id="brush-title">Height brush</h3>
-            </header>
-            <p class="note" id="brush-desc"></p>
-            <div class="fields">
-              <label class="field slider" data-brush="radius"><span class="field-label">Size</span><input type="range" min="50" max="600" step="5" /><output class="mono"></output></label>
-              <label class="field slider" data-brush="strength"><span class="field-label">Strength</span><input type="range" min="1" max="10" step="0.5" /><output class="mono"></output></label>
-              <div class="field" id="brush-sign-field">
-                <span class="field-label">Direction</span>
-                <div class="segmented" id="brush-sign" role="radiogroup">
-                  <button type="button" data-value="1" role="radio">+</button>
-                  <button type="button" data-value="-1" role="radio">−</button>
-                </div>
-              </div>
-              <div class="field" id="smooth-axis-field" hidden>
-                <span class="field-label">Axis</span>
-                <div class="segmented" id="smooth-axis" role="radiogroup">
-                  <button type="button" data-value="all" role="radio">All</button>
-                  <button type="button" data-value="z" role="radio">Height</button>
-                  <button type="button" data-value="x" role="radio">X lean</button>
-                  <button type="button" data-value="y" role="radio">Y lean</button>
-                </div>
-              </div>
-              <label class="field slider" data-brush="smoothness" id="smoothness-field" hidden><span class="field-label">Smoothness</span><input type="range" min="0" max="1" step="0.05" /><output class="mono"></output></label>
-              <div class="field" id="restore-target-field" hidden>
-                <span class="field-label">Restore toward</span>
-                <div class="segmented" id="restore-target" role="radiogroup">
-                  <button type="button" data-value="reference" role="radio" id="restore-reference-label">Kept shape</button>
-                  <button type="button" data-value="original" role="radio">Original</button>
-                  <button type="button" data-value="neutral" role="radio">Neutral</button>
-                </div>
-              </div>
-            </div>
-            <p class="note subtle" id="brush-gestures"></p>
-          </div>
-
-          <!-- Navigate -->
-          <div class="tool-pane" data-pane="navigate" hidden>
-            <header class="panel-head"><h3>Move the view</h3></header>
-            <p class="note">Drag to orbit, scroll or pinch to zoom, right-drag or two-finger drag to pan. Pick a tool above to start shaping. While painting, hold <kbd>Space</kbd> to move the view, or use two fingers on a touch screen.</p>
-          </div>
-        </article>
-
-        <!-- Starting point -->
-        <article class="panel" id="panel-start">
-          <header class="panel-head"><h3>Starting point</h3></header>
-          <div class="segmented wide" id="starting-point" role="radiogroup" aria-label="Starting point">
-            <button type="button" data-value="current" role="radio">Current sculpture</button>
-            <button type="button" data-value="neutral" role="radio">Neutral pattern</button>
-          </div>
-          <p class="note" id="start-note">Begins from the finished sculpture exactly as imported. The original always stays available.</p>
-          <div class="field-row">
-            <button type="button" class="btn btn-small" id="reset-design">Reset design</button>
-            <label class="check" title="Allow larger heights, leans and wave amounts"><input type="checkbox" id="extended" /> <span>Extended ranges</span></label>
-          </div>
-          <p class="note warn" id="extended-note" hidden>Extended ranges allow bolder shapes. Watch the geometry check for pieces that collide.</p>
-        </article>
-
-        <!-- Geometry check -->
-        <article class="panel" id="panel-check">
-          <header class="panel-head">
-            <h3>Geometry check</h3>
-            <button type="button" class="btn btn-small btn-ghost" id="run-check">Run full check</button>
-          </header>
-          <div class="check-summary" id="check-summary" data-status="ok">
-            <svg class="i"><use href="#i-check"/></svg>
-            <div><strong id="check-title">No problems found</strong><span id="check-detail"></span></div>
-          </div>
-          <ul class="issue-list" id="issue-list"></ul>
-          <p class="note subtle">Checks the folded design surfaces: fixed bases, exact 75% inner shells, positive tip heights, usable faces, and neighbors passing through each other. This is a design preview, not a fabrication test; paper thickness and glue tabs are not modeled.</p>
-        </article>
-
-        <!-- Board -->
-        <article class="panel" id="panel-board">
-          <header class="panel-head"><h3>Board</h3></header>
-          <div class="board-diagram" id="board-diagram" aria-hidden="true">
-            <div class="bd-board"><div class="bd-art"></div>
-              <span class="bd-m bd-l" id="bd-l"></span><span class="bd-m bd-r" id="bd-r"></span>
-              <span class="bd-m bd-t" id="bd-t"></span><span class="bd-m bd-b" id="bd-b"></span>
-            </div>
-          </div>
-          <p class="board-size mono" id="board-size"></p>
-          <p class="note" id="board-status"></p>
-          <button type="button" class="btn btn-small" id="fit-board">Fit board with 2-inch border</button>
-        </article>
-
-        <!-- Kept shapes -->
-        <article class="panel" id="panel-kept">
-          <header class="panel-head"><h3>Kept shapes</h3></header>
-          <ol class="kept-list" id="kept-list"></ol>
-          <p class="note subtle" id="kept-empty">When you pause a wave and press “Keep this shape”, it becomes the new base for brushes. Its wave settings are listed here so you can return to them.</p>
-        </article>
-
-        <!-- Save & export -->
-        <article class="panel" id="panel-save">
-          <header class="panel-head"><h3>Save and export</h3></header>
-          <label class="field text"><span class="field-label">Design name</span><input type="text" id="design-name" maxlength="80" autocomplete="off" /></label>
-          <div class="button-grid">
-            <button type="button" class="btn" id="save-local"><svg class="i"><use href="#i-save"/></svg>Save in this browser</button>
-            <button type="button" class="btn" id="download-json"><svg class="i"><use href="#i-download"/></svg>Design file (.json)</button>
-            <button type="button" class="btn" id="import-json"><svg class="i"><use href="#i-upload"/></svg>Open design file…</button>
-            <button type="button" class="btn" id="export-png"><svg class="i"><use href="#i-image"/></svg>Image (.png)</button>
-            <button type="button" class="btn" id="export-glb"><svg class="i"><use href="#i-cube"/></svg>3-D model (.glb)</button>
-            <button type="button" class="btn" id="export-blender" title="Design file, rebuild script and canonical data in one .zip"><svg class="i"><use href="#i-code"/></svg>Blender package (.zip)</button>
-          </div>
-          <label class="check"><input type="checkbox" id="glb-thickness" /> <span>Include presentation paper thickness in the 3-D model</span></label>
-          <input type="file" id="file-input" accept=".json,application/json" hidden />
-          <p class="note subtle">Everything stays on this device. Nothing is uploaded.</p>
-        </article>
-
-        <!-- Saved designs -->
-        <article class="panel" id="designs">
-          <header class="panel-head"><h3>Saved designs</h3></header>
-          <ul class="design-list" id="design-list"></ul>
-          <p class="note subtle" id="designs-empty">Designs you save in this browser appear here.</p>
-          <div class="resume" id="resume" hidden>
-            <p class="note">You have unsaved work from your last visit.</p>
-            <div class="field-row"><button type="button" class="btn btn-small btn-primary" id="resume-open">Open it</button><button type="button" class="btn btn-small btn-ghost" id="resume-discard">Discard</button></div>
-          </div>
-        </article>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <p>Origami 1829 · Interactive viewer and studio. Geometry imported from <span class="mono">origami1829-final-vision.blend</span>.</p>
-    <p class="subtle" id="perf-readout"></p>
-  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <dialog class="dialog" id="dialog">
     <form method="dialog">
       <h3 id="dialog-title"></h3>
       <p id="dialog-body"></p>
       <div class="dialog-actions">
-        <button value="cancel" class="btn btn-ghost" id="dialog-cancel">Cancel</button>
+        <button value="cancel" class="btn" id="dialog-cancel">Cancel</button>
         <button value="ok" class="btn btn-primary" id="dialog-ok">OK</button>
       </div>
     </form>

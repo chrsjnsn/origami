@@ -11,6 +11,7 @@
 
 import type { BoardSettings } from './board';
 import { type GlbDocument, type GlbNode, writeGlb } from './glb';
+import type { PaperColors } from './look';
 import type { Sculpture } from './sculpture';
 import { FLOATS_PER_SHELL, writeThickShell } from './solidify';
 
@@ -29,6 +30,18 @@ export function toGltf(x: number, y: number, z: number, out: Float32Array, o: nu
 export interface ExportOptions {
   includePresentation: boolean;
   designName: string;
+  /** Paper colors (sRGB hex). Defaults to the original black and blue. */
+  colors?: PaperColors;
+}
+
+/** sRGB hex to linear RGB. */
+export function hexToLinear(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v: number) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return [ch((n >> 16) & 255), ch((n >> 8) & 255), ch(n & 255)];
 }
 
 export function buildDesignGlb(
@@ -39,10 +52,17 @@ export function buildDesignGlb(
   opts: ExportOptions,
 ): Uint8Array {
   const doc: GlbDocument = {
-    materials: [
-      { name: 'Matte black dyed cardboard', color: MATERIAL_COLORS.outer, roughness: 0.88 },
-      { name: 'Vibrant message blue paper - sRGB 007AFF', color: MATERIAL_COLORS.inner, roughness: 0.72 },
-    ],
+    materials: opts.colors
+      ? [
+          { name: `Outer paper ${opts.colors.outer}`, color: hexToLinear(opts.colors.outer), roughness: 0.88 },
+          { name: `Inner paper ${opts.colors.inner}`, color: hexToLinear(opts.colors.inner), roughness: 0.72 },
+          { name: `Board ${opts.colors.board}`, color: hexToLinear(opts.colors.board), roughness: 0.88 },
+        ]
+      : [
+          { name: 'Matte black dyed cardboard', color: MATERIAL_COLORS.outer, roughness: 0.88 },
+          { name: 'Vibrant message blue paper - sRGB 007AFF', color: MATERIAL_COLORS.inner, roughness: 0.72 },
+          { name: 'Matte black board', color: MATERIAL_COLORS.outer, roughness: 0.88 },
+        ],
     meshes: [],
     nodes: [],
     roots: [],
@@ -114,10 +134,10 @@ export function buildDesignGlb(
     1, 2, 6, 1, 6, 5, // right
     3, 0, 4, 3, 4, 7, // left
   ]);
-  doc.meshes.push({ name: 'Backing board', positions: bpos, indices: bidx, material: 0 });
+  doc.meshes.push({ name: 'Backing board', positions: bpos, indices: bidx, material: 2 });
   collections.push(
     addNode({
-      name: 'Backing board - matte black - 2 inch border',
+      name: 'Backing board - 2 inch border',
       mesh: doc.meshes.length - 1,
       extras: { width_mm: board.width, height_mm: board.height, thickness_mm: board.thickness, border_mm: board.border },
     }),
@@ -145,6 +165,6 @@ export function buildDesignGlb(
     }
   }
 
-  doc.roots.push(addNode({ name: `Origami 1829 - ${opts.designName}`, children: collections }));
+  doc.roots.push(addNode({ name: `Origami Waves - ${opts.designName}`, children: collections }));
   return writeGlb(doc);
 }
