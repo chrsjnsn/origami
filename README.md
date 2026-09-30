@@ -37,8 +37,9 @@ the Blender files.
 ## Using the site
 
 **Viewing.** Drag with one finger (or the mouse) or twist two fingers to turn the artwork, scroll
-or pinch to zoom, right-drag or slide two fingers to move it. *Front*, *Angled* and *Detail*
-recreate the three Blender cameras. The page never scrolls, so touch gestures always go to the
+or pinch to zoom, right-drag or slide two fingers to move it. *Front* and *Detail*
+recreate the Blender cameras; *Angled* shows the artwork tipped back 45°, as if leaning back on an
+easel, where the relief reads best. The page never scrolls, so touch gestures always go to the
 artwork.
 
 **Customize** (the page's address ends in `#customize`, so the browser's back button returns to
@@ -48,7 +49,7 @@ the main page):
 | --- | --- |
 | **Colors** | Pyramids (outside paper), Inside (the nested paper), Board. Each has a set of swatches plus a custom color picker. |
 | **Pattern style** | *Original* (the artwork as made), *Drift*, *Ripple*, *Dunes*, *Crosscurrent*, *Bloom*, *Spiral*. The small previews show each style in your colors. |
-| **Intensity** | Calm to bold: how far the pyramids rise, fall and lean. |
+| **Intensity** | Subtle to bold: how far the pyramids rise, fall and lean. The lowest setting is half strength, so there is always a clear pattern. |
 | **Scale** | Fine to broad: the distance between wave crests. Broad waves let the tips lean farthest. |
 | **Flow** | Gentle to swirling: how much the wave fronts bend and the leans twist. |
 | **Shuffle** | A new variation of the style (new positions, angles and timing). |
@@ -69,8 +70,14 @@ materials, lights and cameras in your colors (instructions in the zip's README).
 Like the original, every style mixes strong areas, where tips reach far over and rise or drop,
 with calmer areas that lean slightly closed and sit a little lower, so the strong areas stand out.
 Wave fronts always bend a little (more with *Flow*), and the lean direction turns gradually across
-the board, so no area is a plain, straight wave. Each pattern is measured and scaled until its
-strongest area reaches the limits below, which keeps every variation bold.
+the board. Each pattern is measured and scaled until its strongest area reaches the limits below,
+which keeps every variation bold.
+
+Waves run along every row and column: no wave may travel along a row or column (every one is at
+least 25° off both), a gentle undertone of two more oblique waves runs everywhere, and a fine
+ripple along the two diagonals (about 4–5 pieces per wave, ±8 mm in height and ±8 mm in lean) keeps
+every tip's x, y and height changing from piece to piece. Measured over runs of 5 neighboring
+pieces, tips line up (within 3 mm) about 2% of the time, as in the original.
 
 ### Geometry limits
 
@@ -78,7 +85,7 @@ Every variation stays within limits taken from the original artwork, so pyramids
 short, never fall toward the board, never touch their neighbors and never reach into the 2-inch
 border of the board:
 
-* tip height 22 to 76 mm (the original: 27 to 71 mm), resting at 46 mm
+* tip height 22 to 76 mm (the original: 27 to 71 mm), resting at 49 mm
 * sideways lean up to 66 mm (the original reaches about 69 mm)
 * neighboring tips differ in lean by at most 38 mm (the original: 37.6 mm); where a pattern is
   steeper, only that spot is eased back, smoothly

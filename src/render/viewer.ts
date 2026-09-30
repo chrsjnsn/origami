@@ -508,10 +508,10 @@ export class Viewer {
       return this.framePose(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), center, b.width, b.height, narrow ? 1.04 : 1.1, viewport);
     }
     if (name === 'angled') {
-      const cam = findCamera(this.presentation, '02');
-      const dir = cam ? new THREE.Vector3(...cam.forward).negate() : new THREE.Vector3(0.18, -0.35, 0.92);
-      const up = cam ? new THREE.Vector3(...cam.up) : new THREE.Vector3(0, 1, 0);
-      return this.framePose(dir, up, center, b.width, b.height, narrow ? 1.12 : 1.16, viewport);
+      // The artwork tipped back 45° from the front view, as if leaning back on an easel: seen
+      // from 45° below its normal, so the relief of the tips reads clearly.
+      const dir = new THREE.Vector3(0, -Math.SQRT1_2, Math.SQRT1_2);
+      return this.framePose(dir, new THREE.Vector3(0, 1, 0), center, b.width, b.height, narrow ? 1.12 : 1.22, viewport);
     }
     const cam = findCamera(this.presentation, '03');
     const dir = cam ? new THREE.Vector3(...cam.forward).negate() : new THREE.Vector3(0.5, 0.4, 0.75);

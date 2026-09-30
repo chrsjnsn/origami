@@ -20,11 +20,13 @@ Node 22, Blender 5.0.1, three.js 0.186. Reproduce with `npm test`, `npm run veri
 
 | Check | Result |
 | --- | --- |
-| Random sweep, `npm run sweep` (10,000 variations: all six styles, half at intensity 1, 30% at the scale and flow extremes, random seeds and moments up to one hour) | **0 variations with any error or warning**; smallest board border 51.92 mm (the 2-inch border is 50.8 mm) |
+| Random sweep, `npm run sweep` (10,000 variations: all six styles, half at intensity 1, 30% at the scale and flow extremes, random seeds and moments up to one hour) | **0 variations with any error or warning**; smallest board border 51.93 mm (the 2-inch border is 50.8 mm) |
 | Margin: the same sweep with the neighbor lean limit raised from 38 to 44 / 48 mm | intersections in 4 / 39 of 2,000 variations (so the chosen limit keeps a margin) |
 | Sweep inside `npm test` | 600 variations, 0 issues, border > 50.8 mm |
 | Limits at the strongest settings (every style, scale 0 and 1, flow 1) | tips 22–76 mm high, lean ≤ 66 mm, all tips inside the border |
 | Bases and inner shells for every style | bases 0 mm change; inner rule exact (< 1e-9 mm) |
+| Lowest Intensity (every style) | half strength: strongest lean still > 25 mm |
+| Waves along every row and column (every style, starting and random settings including all extremes) | straight runs average < 3%, worst < 12% (test) |
 | Boldness (every style, seeds 1–3, starting settings) | strongest lean > 40 mm; at least 20% of the board calm (lean < 22 mm); heights spanning > 30 mm |
 | Safety net | leaves safe poses unchanged (strength 1); with deliberately loosened limits it found a clean strength below 1 |
 | Motion | fastest tip speed below 40 mm/s at the strongest settings; the pose depends only on the moment |
@@ -34,25 +36,32 @@ diagonal), with the local neighbor limiter: Drift 57–61 mm, Ripple 58–61, Du
 Crosscurrent 55–61, Bloom 62–63, Spiral 58–61. Before this change (one global scale factor, no
 contrast), the same measure was 31–56 mm and most of each board sat at a similar, middling lean.
 
-Pattern character at each style's starting settings (seed 1), compared with the original. "Diagonal
-lean" is the lean along the (1, 1) diagonal, which decides how much of the inside paper shows
-(negative = closed, positive = open):
+Pattern character at each style's starting settings, compared with the original. "Diagonal lean"
+(seed 1) is the lean along the (1, 1) diagonal, which decides how much of the inside paper shows
+(negative = closed, positive = open). "Straight runs" is how often 5 neighboring tips line up
+within 3 mm: tip x along columns / tip y along rows / height along rows / height along columns,
+averaged over seeds 1–12 (lower is more wave-like):
 
-| | Diagonal lean (mm) | Tip height (mm) | Largest lean step between neighbors (mm) |
-| --- | --- | --- | --- |
-| Original | −69 to 46 | 27–71 | 37.6 |
-| Drift | −54 to 48 | 24–64 | 30.1 |
-| Ripple | −56 to 61 | 24–70 | 35.1 |
-| Dunes | −57 to 43 | 27–70 | 35.4 |
-| Crosscurrent | −54 to 51 | 24–70 | 35.6 |
-| Bloom | −55 to 54 | 24–71 | 37.4 |
-| Spiral | −52 to 27 | 24–68 | 35.5 |
+| | Diagonal lean (mm) | Tip height (mm) | Largest neighbor lean step (mm) | Straight runs (%) |
+| --- | --- | --- | --- | --- |
+| Original | −69 to 46 | 27–71 | 37.6 | 0.7 / 1.1 / 2.0 / 6.7 |
+| Drift | −62 to 49 | 24–71 | 34.6 | 1.8 / 1.3 / 1.6 / 1.5 |
+| Ripple | −53 to 59 | 23–71 | 35.6 | 1.1 / 1.0 / 1.9 / 1.9 |
+| Dunes | −55 to 39 | 26–69 | 35.8 | 1.3 / 1.2 / 1.6 / 1.6 |
+| Crosscurrent | −41 to 51 | 27–73 | 35.7 | 0.8 / 0.7 / 1.3 / 1.5 |
+| Bloom | −49 to 51 | 25–74 | 37.5 | 0.9 / 0.8 / 1.5 / 1.2 |
+| Spiral | −60 to 47 | 24–71 | 35.6 | 1.6 / 1.7 / 1.8 / 1.8 |
 
-## Model tests (`npm test`: 24 tests pass, 1 opt-in sweep skipped)
+Before the undertone, ripple and oblique-wave changes, the same straight-run averages reached 10 /
+10 / 30 / 7% for Dunes and 8 / 9 / 16 / 16% for Crosscurrent, with single variations up to 46%.
+Across random settings including every slider extreme (40 variations per style), the average is
+now 1.5–1.9% and the worst single measure 8% (the original's worst is 6.7%).
+
+## Model tests (`npm test`: 26 tests pass, 1 opt-in sweep skipped)
 
 Import and topology, the inner rule against the saved .blend, the supporting data files, the
 envelope and border, the geometry check (clean import, crafted crossing found), *Original* showing
-the import exactly, determinism, the calm rest pose at intensity 0, boldness and contrast, fixed bases and exact inner
+the import exactly, determinism, the lowest intensity at half strength, the calm rest pose at strength 0, boldness and contrast, waves along every row and column, fixed bases and exact inner
 shells for every style, slow motion, the limits at the strongest settings, the 600-variation sweep,
 the safety net, reading untrusted saved looks, palettes, imperial formatting, the Blender design
 file (rebuilds the exact pose, 0 mm, with colors) and the GLB (pose within 2e-4 mm, topology,
@@ -72,6 +81,7 @@ colored materials).
 | Check | Result |
 | --- | --- |
 | Main page | the artwork as made in black and #007AFF; logo and title only, info button, Front / Angled / Detail, Customize |
+| Angled view | the artwork tipped back 45° (seen from 45° below its normal); whole board framed on a 370 × 863 phone screen |
 | Info panel | slides in from the left; on wide screens the artwork moves aside; measurements in inches |
 | Self-test, main page | inner rule 0 mm, bases 0 mm, GPU buffers vs model 6.1e-5 mm, GLB vs pose 6.0e-5 mm, geometry check 0 errors / 0 warnings |
 | Self-test, customize page (Spiral at intensity 1, scale 0, flow 1) | the same results, safety strength 1 |

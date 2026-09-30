@@ -74,3 +74,31 @@ export function hashArray(a: Float64Array): string {
   }
   return (h >>> 0).toString(16);
 }
+
+/**
+ * How often tips line up: the percentage of runs of `win` neighboring pieces whose value stays
+ * within `tol` mm, for tip x along columns, tip y along rows, and tip height along rows and
+ * columns. A wave-like pattern keeps all four low (the original: 1, 1, 2 and 7%).
+ */
+export function straightness(s: Sculpture, offsets: Float64Array, win = 5, tol = 3) {
+  const { cols, rows } = s;
+  const value = (i: number, k: number) => (k === 2 ? s.anchors[i * 3 + 2] + offsets[i * 3 + 2] : offsets[i * 3 + k]);
+  const run = (k: number, alongRow: boolean) => {
+    const lines = alongRow ? rows : cols, len = alongRow ? cols : rows;
+    let straight = 0, total = 0;
+    for (let a = 0; a < lines; a++) {
+      for (let b = 0; b + win <= len; b++) {
+        let lo = Infinity, hi = -Infinity;
+        for (let t = 0; t < win; t++) {
+          const v = value(alongRow ? a * cols + b + t : (b + t) * cols + a, k);
+          lo = Math.min(lo, v);
+          hi = Math.max(hi, v);
+        }
+        total++;
+        if (hi - lo < tol) straight++;
+      }
+    }
+    return (100 * straight) / total;
+  };
+  return { xAlongColumns: run(0, false), yAlongRows: run(1, true), zAlongRows: run(2, true), zAlongColumns: run(2, false) };
+}

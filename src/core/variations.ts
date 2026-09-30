@@ -25,7 +25,7 @@ export type StyleId = 'original' | 'ripple' | 'drift' | 'dunes' | 'crosscurrent'
 
 export interface Variation {
   style: StyleId;
-  /** 0 = flat, 1 = strongest safe pattern. */
+  /** 0 = subtle (half strength), 1 = strongest safe pattern. See `effectiveIntensity`. */
   intensity: number;
   /** 0 = fine (short waves), 1 = broad. */
   scale: number;
@@ -45,16 +45,16 @@ export const STYLES: readonly { id: StyleId; name: string; description: string }
   { id: 'spiral', name: 'Spiral', description: 'Arms curling around a center.' },
 ];
 
-export const DEFAULT_VARIATION: Variation = { style: 'original', intensity: 0.9, scale: 0.5, flow: 0.4, seed: 1 };
+export const DEFAULT_VARIATION: Variation = { style: 'original', intensity: 0.8, scale: 0.5, flow: 0.4, seed: 1 };
 
 /** Starting values when a style is first chosen. */
 export const STYLE_DEFAULTS: Record<Exclude<StyleId, 'original'>, Pick<Variation, 'intensity' | 'scale' | 'flow'>> = {
-  drift: { intensity: 0.95, scale: 0.55, flow: 0.45 },
-  ripple: { intensity: 0.95, scale: 0.55, flow: 0.3 },
-  dunes: { intensity: 0.95, scale: 0.6, flow: 0.55 },
-  crosscurrent: { intensity: 0.95, scale: 0.6, flow: 0.4 },
+  drift: { intensity: 0.9, scale: 0.55, flow: 0.45 },
+  ripple: { intensity: 0.9, scale: 0.55, flow: 0.3 },
+  dunes: { intensity: 0.9, scale: 0.6, flow: 0.55 },
+  crosscurrent: { intensity: 0.9, scale: 0.6, flow: 0.4 },
   bloom: { intensity: 1, scale: 0.6, flow: 0.3 },
-  spiral: { intensity: 0.95, scale: 0.6, flow: 0.25 },
+  spiral: { intensity: 0.9, scale: 0.6, flow: 0.25 },
 };
 
 /**
@@ -63,12 +63,19 @@ export const STYLE_DEFAULTS: Record<Exclude<StyleId, 'original'>, Pick<Variation
  * tips can never converge far enough to touch; all tips stay inside the board's 2-inch border.
  */
 export const LIMITS = {
-  /** Resting tip height of the variations (close to the original median, 47 mm). */
-  restHeight: 46,
+  /** Resting tip height of the variations (the middle of the original's 27–71 mm). */
+  restHeight: 49,
   minHeight: 22,
   maxHeight: 76,
   /** Height change of the strongest area at full intensity. */
-  heightAmplitude: 26,
+  heightAmplitude: 21,
+  /**
+   * Ripple everywhere: two short waves along the two diagonals, so heights and leans change along
+   * every row and every column even where the main pattern is momentarily level. Like every
+   * wave here, tips lean with the ripple's slope.
+   */
+  heightRipple: 8,
+  leanRipple: 8,
   /** Lean of the strongest area at full intensity. */
   maxLean: 66,
   /**
@@ -82,7 +89,7 @@ export const LIMITS = {
    * stand out.
    */
   calmLean: 16,
-  calmDrop: 6,
+  calmDrop: 4,
   /** Shortest and longest wave spacing. */
   minSpacing: 240,
   maxSpacing: 820,
@@ -126,6 +133,10 @@ interface Field {
 
 interface Recipe {
   components: Component[];
+  /** Always-present oblique undertone waves (see UNDERTONE). */
+  under: Component[];
+  /** Short diagonal ripple waves (see LIMITS.heightRipple). */
+  ripple: Component[];
   /** Normalize by local coverage instead of total weight (separate blooms). */
   localNormalize: boolean;
   /** Calmest level of the contrast field (1 = no contrast). */
@@ -136,6 +147,19 @@ interface Recipe {
   bend: [Field, Field, Field, Field];
   bendAngles: [number, number];
   twist: Field;
+}
+
+/** Strength of the undertone relative to the main pattern at its strongest. */
+const UNDERTONE = 0.45;
+/** Smallest angle (radians) between a traveling wave and the rows or columns. */
+const MIN_AXIS_ANGLE = (25 * Math.PI) / 180;
+
+/** Moves an angle at least MIN_AXIS_ANGLE away from both grid axes. */
+export function oblique(angle: number): number {
+  const q = Math.PI / 2;
+  const base = Math.floor(angle / q) * q;
+  const within = angle - base; // 0 .. 90°
+  return base + Math.min(q - MIN_AXIS_ANGLE, Math.max(MIN_AXIS_ANGLE, within));
 }
 
 /** Deterministic small PRNG (mulberry32). */
@@ -175,7 +199,7 @@ function recipe(style: Exclude<StyleId, 'original'>, seed: number, W: number, H:
       const base = (range(20, 70) + (r() < 0.5 ? 180 : 0)) * deg;
       components.push(comp({ angle: base, phase: range(0, TAU), speed: 1 }));
       components.push(comp({ angle: base + sign() * range(15, 35) * deg, k: range(0.6, 0.75), weight: 0.6, phase: range(0, TAU), speed: 0.7 }));
-      contrastMin = 0.3;
+      contrastMin = 0.5;
       break;
     }
     case 'ripple': {
@@ -184,11 +208,11 @@ function recipe(style: Exclude<StyleId, 'original'>, seed: number, W: number, H:
       const x2 = x < cx ? range(0.7, 1) * W : range(0, 0.3) * W;
       const y2 = y < cy ? range(0.65, 1) * H : range(0, 0.35) * H;
       components.push(comp({ kind: 'ripple', x: x2, y: y2, k: range(1.1, 1.3), weight: 0.4, phase: range(0, TAU), speed: 0.8 }));
-      contrastMin = 0.4;
+      contrastMin = 0.55;
       break;
     }
     case 'dunes': {
-      const base = (90 + sign() * range(0, 25)) * deg;
+      const base = (90 + sign() * range(22, 38)) * deg;
       components.push(comp({ angle: base, phase: range(0, TAU), speed: 0.8, sharp: range(0.35, 0.5) }));
       // A longer swell along the diagonal makes the crests merge and split like real dunes
       // (along the diagonal its lean also shows as color, not only as height) ...
@@ -196,18 +220,18 @@ function recipe(style: Exclude<StyleId, 'original'>, seed: number, W: number, H:
       components.push(comp({ angle: swell, k: range(0.45, 0.6), weight: 0.6, phase: range(0, TAU), speed: 0.35 }));
       // ... and short cross ripples roughen the long crests.
       components.push(comp({ angle: base + sign() * range(25, 40) * deg, k: range(1.3, 1.5), weight: 0.22, phase: range(0, TAU), speed: -0.6 }));
-      contrastMin = 0.3;
+      contrastMin = 0.5;
       bendBoost = 1.45;
       break;
     }
     case 'crosscurrent': {
       // Two currents at an oblique angle with unrelated spacings, so the crossings never
       // settle into a regular grid; the contrast field lets them weave only in patches.
-      const a = range(0, 180) * deg;
+      const a = (range(20, 70) + 90 * Math.floor(r() * 4)) * deg;
       const b = a + sign() * range(55, 75) * deg;
       components.push(comp({ angle: a, phase: range(0, TAU), speed: 1 }));
       components.push(comp({ angle: b, k: range(1.3, 1.6), weight: 0.8, phase: range(0, TAU), speed: -0.8 }));
-      contrastMin = 0.12;
+      contrastMin = 0.35;
       bendBoost = 1.25;
       break;
     }
@@ -235,18 +259,38 @@ function recipe(style: Exclude<StyleId, 'original'>, seed: number, W: number, H:
       const x = cx + range(-0.18, 0.18) * W, y = cy + range(-0.18, 0.18) * H;
       const arms = (2 + Math.floor(r() * 2)) * sign();
       components.push(comp({ kind: 'spiral', x, y, arms, phase: range(0, TAU), speed: 1 }));
-      contrastMin = 0.55;
+      contrastMin = 0.65;
       break;
     }
   }
+
+  // No straight wave may run along a row or a column: a wave traveling along an axis leaves the
+  // other axis unchanged, so whole rows or columns of tips would line up. Push every traveling
+  // wave at least 20° off both axes.
+  for (const c of components) if (c.kind === 'travel') c.angle = oblique(c.angle);
+  // Undertone: two gentle oblique waves everywhere, unaffected by the contrast field, so even the
+  // calm areas keep rippling in x, y and z.
+  const under = [
+    comp({ angle: oblique(range(0, TAU)), k: range(0.8, 1.05), weight: 1, phase: range(0, TAU), speed: range(0.5, 0.9) }),
+    comp({ angle: oblique(range(0, TAU)), k: range(1.1, 1.35), weight: 0.7, phase: range(0, TAU), speed: -range(0.4, 0.8) }),
+  ];
 
   const dir = (): [number, number] => {
     const a = range(0, TAU);
     return [Math.cos(a), Math.sin(a)];
   };
   const field = (length: number, speed: number): Field => ({ d: dir(), length, phase: range(0, TAU), speed });
+  const rippleAngle = (45 + range(-12, 12) + 90 * Math.floor(r() * 4)) * deg;
+  const ripple = [
+    // Fixed, fine wavelengths (about 4-5 pieces), independent of Scale, so a smooth slope of the
+    // main pattern can never cancel the ripple over a run of pieces. Here k is in rad/mm.
+    comp({ angle: rippleAngle, k: TAU / range(205, 235), phase: range(0, TAU), speed: range(0.6, 1) }),
+    comp({ angle: rippleAngle + (90 + range(-12, 12)) * deg, k: TAU / range(165, 190), weight: 0.55, phase: range(0, TAU), speed: -range(0.5, 0.9) }),
+  ];
   return {
     components,
+    under,
+    ripple,
     localNormalize,
     contrastMin,
     // Broad areas, about the size of a third to a half of the board.
@@ -258,6 +302,16 @@ function recipe(style: Exclude<StyleId, 'original'>, seed: number, W: number, H:
     bendAngles: [range(0, TAU), range(0, TAU)],
     twist: field(range(900, 1300), 0.2),
   };
+}
+
+/**
+ * Pattern strength for an Intensity slider value. The slider starts at half strength: below that
+ * the pattern fades into a nearly uniform surface, which is not what the slider is for.
+ */
+export const MIN_INTENSITY = 0.5;
+
+export function effectiveIntensity(slider: number): number {
+  return MIN_INTENSITY + (1 - MIN_INTENSITY) * clamp01(slider);
 }
 
 /** Wave spacing (mm) for a scale slider value. */
@@ -333,6 +387,9 @@ export class VariationEngine {
   private readonly ry: Float64Array;
   /** How calm each piece's area is (0 = fully active, 1 = calmest). */
   private readonly calm: Float64Array;
+  private readonly rh: Float64Array;
+  private readonly rlx: Float64Array;
+  private readonly rly: Float64Array;
   private readonly ox: Float64Array;
   private readonly oy: Float64Array;
   private readonly bx: Float64Array;
@@ -354,6 +411,9 @@ export class VariationEngine {
     this.rx = new Float64Array(n);
     this.ry = new Float64Array(n);
     this.calm = new Float64Array(n);
+    this.rh = new Float64Array(n);
+    this.rlx = new Float64Array(n);
+    this.rly = new Float64Array(n);
     this.ox = new Float64Array(n);
     this.oy = new Float64Array(n);
     this.bx = new Float64Array(n);
@@ -404,7 +464,7 @@ export class VariationEngine {
     const w0 = BASE_OMEGA * t;
     const a = s.anchors;
     const n = s.count;
-    const { rz, rx, ry, calm } = this;
+    const { rz, rx, ry, calm, rh, rlx, rly } = this;
 
     // Bend: a large sweep and a smaller wobble. Their gradients stay below about 0.6 each, so
     // fronts bend and meander without folding over.
@@ -479,16 +539,47 @@ export class VariationEngine {
         calm[i] = rec.localNormalize ? 1 - smoothstep(0.05, 0.6, local) : 0;
       }
       const g = env / norm;
+      z *= g;
+      lx *= g;
+      ly *= g;
+      // Undertone (sampled at the bent point too, so it follows the flow).
+      let uz = 0, ulx = 0, uly = 0, uw = 0;
+      for (const c of rec.under) {
+        const ux = Math.cos(c.angle), uy = Math.sin(c.angle);
+        const sPhase = k0 * c.k * ((qx - c.x) * ux + (qy - c.y) * uy) - (c.phase + c.speed * w0);
+        uz += c.weight * Math.sin(sPhase);
+        ulx += c.weight * Math.cos(sPhase) * ux;
+        uly += c.weight * Math.cos(sPhase) * uy;
+        uw += c.weight;
+      }
+      z += (UNDERTONE * uz) / uw;
+      lx += (UNDERTONE * ulx) / uw;
+      ly += (UNDERTONE * uly) / uw;
+      // Height ripple.
+      let hr = 0, hx = 0, hy = 0, hw = 0;
+      for (const c of rec.ripple) {
+        const kk = c.k;
+        const cx = Math.cos(c.angle), cy = Math.sin(c.angle);
+        // Sampled on the grid itself (not the bent point), so its fine spacing is guaranteed.
+        const sp = kk * (px * cx + py * cy) - (c.phase + c.speed * w0);
+        hr += c.weight * Math.sin(sp);
+        hx += c.weight * Math.cos(sp) * cx;
+        hy += c.weight * Math.cos(sp) * cy;
+        hw += c.weight;
+      }
+      rh[i] = hr / hw;
+      rlx[i] = hx / hw;
+      rly[i] = hy / hw;
       // Twist the lean direction.
       const tw = twistAmp * wave(rec.twist, px, py, rec.twist.length);
       const ct = Math.cos(tw), st = Math.sin(tw);
-      rz[i] = z * g;
-      rx[i] = (lx * ct - ly * st) * g;
-      ry[i] = (lx * st + ly * ct) * g;
+      rz[i] = z;
+      rx[i] = lx * ct - ly * st;
+      ry[i] = lx * st + ly * ct;
     }
 
     // Scale the raw pattern so its strongest area reaches the limits.
-    const intensity = clamp01(v.intensity) * strength;
+    const intensity = effectiveIntensity(v.intensity) * strength;
     const calmLean = (intensity * LIMITS.calmLean) / Math.SQRT2;
     let maxZ = 1e-12, maxL = 1e-12;
     for (let i = 0; i < n; i++) {
@@ -498,19 +589,20 @@ export class VariationEngine {
     const H = (intensity * LIMITS.heightAmplitude) / maxZ;
     const L = (intensity * LIMITS.maxLean) / maxL;
 
-    // Lean vectors in mm: the wave part (magnitude softly capped) plus the calm lean.
+    // Lean vectors in mm: the pattern, the ripple and the calm lean, magnitude softly capped.
     const { ox, oy, bx, f, g } = this;
     for (let i = 0; i < n; i++) {
-      let wx = L * rx[i], wy = L * ry[i];
-      const m = Math.hypot(wx, wy);
+      bx[i] = calmLean * calm[i];
+      let lx = L * rx[i] + strength * LIMITS.leanRipple * rlx[i] + bx[i];
+      let ly = L * ry[i] + strength * LIMITS.leanRipple * rly[i] + bx[i];
+      const m = Math.hypot(lx, ly);
       if (m > 0) {
         const mm = softMax(m, LIMITS.maxLean, 12);
-        wx *= mm / m;
-        wy *= mm / m;
+        lx *= mm / m;
+        ly *= mm / m;
       }
-      bx[i] = calmLean * calm[i];
-      ox[i] = wx + bx[i];
-      oy[i] = wy + bx[i];
+      ox[i] = lx;
+      oy[i] = ly;
     }
 
     // Neighbor limit, applied locally: where adjacent tips would differ by more than the step
@@ -579,8 +671,9 @@ export class VariationEngine {
     const b = this.bounds;
     for (let i = 0; i < n; i++) {
       const px = a[i * 3], py = a[i * 3 + 1];
-      let tz = LIMITS.restHeight + H * rz[i] - intensity * LIMITS.calmDrop * calm[i];
-      tz = softMin(softMax(tz, LIMITS.maxHeight, 10), LIMITS.minHeight, 8);
+      // The ripple keeps its full size at every Intensity (only the safety net scales it).
+      let tz = LIMITS.restHeight + H * rz[i] + strength * LIMITS.heightRipple * rh[i] - intensity * LIMITS.calmDrop * calm[i];
+      tz = softMin(softMax(tz, LIMITS.maxHeight, 8), LIMITS.minHeight, 5);
       let tx = px + ox[i], ty = py + oy[i];
       tx = softMin(softMax(tx, b.maxX, 14), b.minX, 14);
       ty = softMin(softMax(ty, b.maxY, 14), b.minY, 14);

@@ -3,7 +3,7 @@ import { it } from 'vitest';
 import { borderReport, importedBoard, presentationEnvelope } from '../src/core/board';
 import { validateShells } from '../src/core/validation';
 import { STYLE_DEFAULTS, STYLES, type StyleId, VariationEngine } from '../src/core/variations';
-import { innerRuleError, loadSculpture } from './helpers';
+import { innerRuleError, loadSculpture, straightness } from './helpers';
 
 /** Writes measured numbers used in docs/VERIFICATION.md to test-output/measurements.json. */
 it('measure', () => {
@@ -35,7 +35,7 @@ it('measure', () => {
     }
     return { diagonalLeanMm: open, tipHeightMm: z, neighborLeanStepMm: step };
   };
-  const styles: Record<string, unknown> = { original: stats(s.originalOffsets) };
+  const styles: Record<string, unknown> = { original: { ...stats(s.originalOffsets), straightRunsPercent: straightness(s, s.originalOffsets) } };
   const off = new Float64Array(s.count * 3);
   let evalMs = 0;
   for (const st of STYLES.filter((x) => x.id !== 'original')) {
@@ -45,7 +45,13 @@ it('measure', () => {
     for (let k = 0; k < 100; k++) engine.offsets(vv, k * 0.016, off);
     evalMs = Math.max(evalMs, (performance.now() - t1) / 100);
     engine.offsets(vv, 0, off);
-    styles[id] = { ...stats(off), measure: engine.last };
+    const lines = { xAlongColumns: 0, yAlongRows: 0, zAlongRows: 0, zAlongColumns: 0 };
+    for (let seed = 1; seed <= 12; seed++) {
+      const r = straightness(s, engine.offsets({ ...vv, seed }, seed * 7));
+      for (const k of Object.keys(lines) as (keyof typeof lines)[]) lines[k] += r[k] / 12;
+    }
+    engine.offsets(vv, 0, off);
+    styles[id] = { ...stats(off), measure: engine.last, straightRunsPercent: lines };
   }
   const t2 = performance.now();
   for (let k = 0; k < 60; k++) s.shellVertices(s.tipsFromOffsets(engine.offsets({ style: 'drift', seed: 1, ...STYLE_DEFAULTS.drift }, k * 0.016, off)));

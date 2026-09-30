@@ -49,8 +49,9 @@ raw height  z = A · Σ w_c E_c sin s / N,   raw lean ℓ = A · R(τ) Σ w_c E_
 ```
 
 Height and lean come from the same wave, as in the original: tips lean with the slope of the
-crest. Three slow fields (each a drifting plane wave, seeded) give the patterns the original's
-character:
+crest. Every traveling wave is turned at least 25° away from both grid axes (`oblique`): a wave
+that runs along a row changes nothing along it, so a whole row of tips would line up. Three slow
+fields (each a drifting plane wave, seeded) give the patterns the original's character:
 
 * **Bend** (`q`): the sampling point is displaced by two octaves of warp, a sweep with wavelength
   4.5 λ and amplitude (0.13 + 0.22 · flow) λ and a wobble with wavelength 2.2 λ and amplitude
@@ -59,6 +60,17 @@ character:
 * **Contrast** (`A`): broad areas (700–1400 mm) of strong motion and calmer areas, from
   `A_min` (0.12–0.55 by style) to 1. Blooms get their contrast from their own reach instead.
 * **Twist** (`R(τ)`): the lean direction turns by up to ±(15° + 30° · flow) across the board.
+
+Two more layers make sure every row and column shows waves in x, y and z (the user-visible
+requirement: no runs of tips lined up in any coordinate):
+
+* **Undertone**: two oblique traveling waves (0.8–1.35 × the main wavenumber), added after the
+  contrast field at 0.45 of the pattern's peak, so calm areas keep moving.
+* **Ripple**: two fine waves along the two diagonals with fixed wavelengths (205–235 mm and
+  165–190 mm, about 4–5 pieces), sampled on the grid itself (not the bent point, so the bend
+  cannot stretch them), adding ±8 mm of height and ±8 mm of lean with the slope. Their fixed,
+  fine spacing means a smooth slope of the main pattern can never cancel them over a run of
+  pieces. They keep their size at every Intensity.
 
 | Style | Recipe |
 | --- | --- |
@@ -77,11 +89,13 @@ diagonal, which is what makes colored bands appear (the original works the same 
 ### Scaling to the limits
 
 The raw pattern is measured and scaled so that its strongest area reaches the limits, whatever the
-style, seed, slider settings or moment:
+style, seed, slider settings or moment. `intensity` below is the pattern strength
+`0.5 + 0.5 · slider` (`effectiveIntensity`): the Intensity slider starts at half strength, because
+weaker patterns fade into a nearly uniform surface.
 
 ```
-height  = 46 mm + (intensity · 26 mm / max|z|) · z  -  intensity · 6 mm · calm
-lean    = softcap_66mm( (intensity · 66 mm / max|ℓ|) · ℓ )  +  intensity · 16 mm · calm · (1, 1)/√2
+height  = 49 mm + (intensity · 21 mm / max|z|) · z  +  8 mm · ripple_z  -  intensity · 4 mm · calm
+lean    = softcap_66mm( (intensity · 66 mm / max|ℓ|) · ℓ  +  8 mm · ripple_ℓ  +  intensity · 16 mm · calm · (1, 1)/√2 )
 ```
 
 `calm` (0–1) marks the calm areas; they lean slightly toward the upper right (closed, so they read
@@ -143,6 +157,9 @@ reproduced exactly.
   also turns it (`installTwist`: the change in angle between the fingers × 1.2 goes to
   `controls.rotateLeft`, so clockwise matches dragging right); a pure twist keeps the fingers'
   distance and midpoint, so it does not zoom or move.
+* Views: *Front* and *Detail* follow the Blender cameras; *Angled* looks along (0, −1, 1)/√2: the
+  artwork tipped back 45°, seen from 45° below its normal, with extra framing margin because
+  perspective enlarges the near edge.
 * Framing uses screen insets (top bar, buttons, the customize panel or bottom sheet, the play bar)
   so the artwork is centered in the free area; changing insets animates the camera.
 * `snapshot(w, h, view)` renders a framed image at an exact size synchronously and restores the

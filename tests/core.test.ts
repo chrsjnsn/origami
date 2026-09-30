@@ -17,7 +17,7 @@ import {
   VariationEngine,
 } from '../src/core/variations';
 import { inches, inchValue } from '../src/ui/units';
-import { baseChange, innerRuleError, loadJson, loadSculpture, maxAbsDiff } from './helpers';
+import { baseChange, innerRuleError, loadJson, loadSculpture, maxAbsDiff, straightness } from './helpers';
 
 const sculpture = loadSculpture();
 const engine = new VariationEngine(sculpture);
@@ -144,8 +144,19 @@ describe('pattern variations', () => {
     }
   });
 
-  it('intensity 0 is the calm rest pose: every tip centered over its base at the rest height', () => {
-    const off = engine.offsets({ style: 'drift', intensity: 0, scale: 0.5, flow: 0.5, seed: 3 }, 9);
+  it('the lowest intensity is half strength and still clearly patterned', () => {
+    for (const style of PATTERN_STYLES) {
+      const v: Variation = { style, seed: 3, ...STYLE_DEFAULTS[style] };
+      const maxLean = (off: Float64Array) => Math.max(...Array.from({ length: sculpture.count }, (_, i) => Math.hypot(off[i * 3], off[i * 3 + 1])));
+      const low = maxLean(engine.offsets({ ...v, intensity: 0 }, 9));
+      const high = maxLean(engine.offsets({ ...v, intensity: 1 }, 9));
+      expect(low).toBeGreaterThan(25);
+      expect(low).toBeLessThan(high);
+    }
+  });
+
+  it('strength 0 (the floor of the safety net) is the calm rest pose: tips centered at the rest height', () => {
+    const off = engine.offsets({ style: 'drift', intensity: 1, scale: 0.5, flow: 0.5, seed: 3 }, 9, undefined, 0);
     for (let i = 0; i < sculpture.count; i++) {
       expect(Math.abs(off[i * 3])).toBeLessThan(1e-9);
       expect(Math.abs(off[i * 3 + 1])).toBeLessThan(1e-9);
@@ -179,6 +190,29 @@ describe('pattern variations', () => {
         expect(Math.max(...z) - Math.min(...z)).toBeGreaterThan(30);
       }
     }
+  });
+
+  it('shows waves along every row and column: tips do not line up in x, y or height', () => {
+    const original = straightness(sculpture, sculpture.originalOffsets);
+    expect(Math.max(...Object.values(original))).toBeLessThan(8);
+    const r = rng(77);
+    let sum = 0, count = 0, worst = 0;
+    for (const style of PATTERN_STYLES) {
+      for (let n = 0; n < 16; n++) {
+        // Starting settings and random settings, including every slider extreme.
+        const v: Variation =
+          n < 4
+            ? { style, seed: n + 1, ...STYLE_DEFAULTS[style] }
+            : { style, seed: Math.floor(r() * 1e6), intensity: [0, 1, r()][n % 3], scale: [0, 1, r(), r()][n % 4], flow: [0, 1, r()][(n + 1) % 3] };
+        const m = Object.values(straightness(sculpture, engine.offsets(v, r() * 600)));
+        worst = Math.max(worst, ...m);
+        sum += m.reduce((a, b) => a + b, 0) / m.length;
+        count++;
+      }
+    }
+    // On average about as few straight runs as the original, and never many more than its worst.
+    expect(sum / count).toBeLessThan(3);
+    expect(worst).toBeLessThan(12);
   });
 
   it('moves slowly and smoothly when animated', () => {
