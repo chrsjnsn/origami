@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { borderReport, importedBoard, presentationEnvelope } from '../src/core/board';
 import { validateShells } from '../src/core/validation';
-import { amplitudes, spacingFor, STYLE_DEFAULTS, STYLES, type StyleId, VariationEngine } from '../src/core/variations';
+import { STYLE_DEFAULTS, STYLES, type StyleId, VariationEngine } from '../src/core/variations';
 import { innerRuleError, loadSculpture } from './helpers';
 
 /** Writes measured numbers used in docs/VERIFICATION.md to test-output/measurements.json. */
@@ -45,7 +45,7 @@ it('measure', () => {
     for (let k = 0; k < 100; k++) engine.offsets(vv, k * 0.016, off);
     evalMs = Math.max(evalMs, (performance.now() - t1) / 100);
     engine.offsets(vv, 0, off);
-    styles[id] = { ...stats(off), spacingMm: spacingFor(vv.scale), amplitudesAtFullIntensity: amplitudes({ ...vv, intensity: 1 }, 1) };
+    styles[id] = { ...stats(off), measure: engine.last };
   }
   const t2 = performance.now();
   for (let k = 0; k < 60; k++) s.shellVertices(s.tipsFromOffsets(engine.offsets({ style: 'drift', seed: 1, ...STYLE_DEFAULTS.drift }, k * 0.016, off)));

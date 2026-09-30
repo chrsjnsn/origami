@@ -43,49 +43,64 @@ spacing λ   = 240 · (820 / 240)^scale  mm
 phase       φ_c = phase0_c + speed_c · (2π / 24 s) · t
 traveling   s = k_c (2π/λ) (q - c)·d_c - φ_c,       u = d_c
 ripple      s = k_c (2π/λ) |q - c| - φ_c,           u = (q - c) / sqrt(r² + (λ/6)²)
-spiral      ripple + arms · atan2(q - c), faded near the center
+spiral      ripple + arms · atan2(q - c), faded within 1.2 λ of the center
 dune        s ← s - a sin s  (steep lee side)
-height      z = Σ w_c E_c sin s / N,   lean ℓ = Σ w_c E_c cos s · u / N
-tip         (anchor_xy + L ℓ,  46 mm + H z)
+raw height  z = A · Σ w_c E_c sin s / N,   raw lean ℓ = A · R(τ) Σ w_c E_c cos s · u / N
 ```
 
-`q` is the anchor bent by the flow warp: two slow sine fields displace the sampling point by up to
-`0.2 λ · flow` (warp wavelength 2.3 λ, drifting once a minute). `E_c` is a quintic falloff for
-blooms, `N` the total weight (blooms normalize by local coverage). Height and lean come from the
-same wave, as in the original: tips lean with the slope of the crest.
+Height and lean come from the same wave, as in the original: tips lean with the slope of the
+crest. Three slow fields (each a drifting plane wave, seeded) give the patterns the original's
+character:
+
+* **Bend** (`q`): the sampling point is displaced by two octaves of warp, a sweep with wavelength
+  4.5 λ and amplitude (0.13 + 0.22 · flow) λ and a wobble with wavelength 2.2 λ and amplitude
+  (0.03 + 0.12 · flow) λ (Dunes × 1.45, Crosscurrent × 1.25). Fronts always curve; each octave's
+  gradient stays below about 0.6 so they meander without folding.
+* **Contrast** (`A`): broad areas (700–1400 mm) of strong motion and calmer areas, from
+  `A_min` (0.12–0.55 by style) to 1. Blooms get their contrast from their own reach instead.
+* **Twist** (`R(τ)`): the lean direction turns by up to ±(15° + 30° · flow) across the board.
 
 | Style | Recipe |
 | --- | --- |
-| Drift | two traveling waves near the (1, 1) diagonal, the second longer and turned 12–24° |
+| Drift | two traveling waves near the (1, 1) diagonal, the second longer and turned 15–35° |
 | Ripple | a ripple anywhere on the board plus a weaker one in the opposite corner |
-| Dunes | a sharp-crested traveling wave near vertical plus a long swell along the diagonal |
-| Crosscurrent | two traveling waves about 90° apart (near X and Y), running in opposite directions |
-| Bloom | 3–5 ripples with limited reach, spaced at least 0.3 × board width, over a faint swell |
-| Spiral | a 2–4 armed spiral near the center |
+| Dunes | a sharp-crested traveling wave near vertical, a long swell along the diagonal, and short cross ripples |
+| Crosscurrent | two traveling waves 55–75° apart with unrelated spacings (ratio 1.3–1.6), in opposite directions, woven only in patches |
+| Bloom | 3–4 ripples of different strengths with limited reach, spaced at least 0.32 × board width, over a faint swell |
+| Spiral | a 2–3 armed spiral near the center |
 
 Why the diagonal matters: the open face of every pyramid faces (1, 1). Leaning a tip toward the
 lower left tilts the opening toward the viewer and shows the inside color; leaning toward the upper
 right hides it. Styles are therefore oriented so their leans have a large component along that
 diagonal, which is what makes colored bands appear (the original works the same way).
 
-### Geometry limits
+### Scaling to the limits
 
-Amplitudes are derived so the pattern cannot produce geometry problems:
+The raw pattern is measured and scaled so that its strongest area reaches the limits, whatever the
+style, seed, slider settings or moment:
 
 ```
-H = intensity · 24 mm
-L = intensity · min(62 mm, 56 mm / (k_max · warp_gain · (2π/λ) · 50 mm))
+height  = 46 mm + (intensity · 26 mm / max|z|) · z  -  intensity · 6 mm · calm
+lean    = softcap_66mm( (intensity · 66 mm / max|ℓ|) · ℓ )  +  intensity · 16 mm · calm · (1, 1)/√2
 ```
 
-The second term bounds how much the lean can change between adjacent pieces (50 mm apart) to about
-56 mm; `k_max` is the style's highest local wavenumber and `warp_gain = 1 + 2π · 0.2 · flow / 2.3`
-accounts for the flow warp compressing waves locally. After that, every tip is softly limited
-(smooth `tanh` knees, no hard corners): height into [22, 76] mm, lean magnitude to 62 mm, and x/y
-to the board minus its 2-inch border (+1.5 mm for paper thickness).
+`calm` (0–1) marks the calm areas; they lean slightly toward the upper right (closed, so they read
+dark, like the quiet areas of the original) and sit a little lower.
 
-The constants were set by sweeping random variations: a neighbor step of 66 mm produced intersections
-in 17 of 2,000 variations; 56 mm produced none in 10,000 (see VERIFICATION.md). Heights stay well
-clear of the checks (the lowest tip is 22 mm; warnings start at 6 mm).
+Neighbor limit: adjacent tips (rows, columns and diagonals, per 50 mm of grid distance) may differ in
+lean by at most `intensity · 38 mm` (the original's largest difference is 37.6 mm). Where a pattern
+is steeper, only that neighborhood is eased back toward its calm lean: each offending pair lowers a
+factor at both ends, the factor is spread to the neighbors (erode, then blur) so the change fades
+in, and this repeats up to 6 times. A final global factor then guarantees the limit exactly. Broad
+areas therefore keep leans near 66 mm even when a small spot of the pattern is steep.
+
+Finally every tip is softly limited (smooth `tanh` knees, no hard corners): height into
+[22, 76] mm and x/y to the board minus its 2-inch border (+1.5 mm for paper thickness).
+
+The neighbor limit was set by sweeping random variations: with the local limiter, 44 mm produced
+intersections in 4 of 2,000 variations and 48 mm in 39 of 2,000; 38 mm produced none in 10,000
+(see VERIFICATION.md). Heights stay well clear of the checks (the lowest tip is 22 mm; warnings
+start at 6 mm).
 
 ### Safety net
 
@@ -124,7 +139,10 @@ reproduced exactly.
 * Resizing renders immediately so a cleared canvas is never shown. Height changes under 120 px
   (mobile browser toolbars) do not re-frame the camera.
 * The page is fixed and never scrolls; the canvas has `touch-action: none`, so one finger always
-  turns the artwork and two fingers zoom and move it (standard three.js OrbitControls).
+  turns the artwork and two fingers zoom and move it (three.js OrbitControls). A two-finger twist
+  also turns it (`installTwist`: the change in angle between the fingers × 1.2 goes to
+  `controls.rotateLeft`, so clockwise matches dragging right); a pure twist keeps the fingers'
+  distance and midpoint, so it does not zoom or move.
 * Framing uses screen insets (top bar, buttons, the customize panel or bottom sheet, the play bar)
   so the artwork is centered in the free area; changing insets animates the camera.
 * `snapshot(w, h, view)` renders a framed image at an exact size synchronously and restores the

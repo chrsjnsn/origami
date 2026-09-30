@@ -227,11 +227,52 @@ export class Viewer {
       this.currentView = null;
     });
 
+    this.installTwist();
+
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
     this.resize();
     this.goTo(this.initialView, false);
     this.renderer.setAnimationLoop(() => this.frame());
+  }
+
+  /**
+   * Two-finger twist turns the artwork, like rotating a map, in the same direction as a one-finger
+   * drag (clockwise = dragging right). It works alongside pinch to zoom and two-finger move,
+   * which a pure twist barely triggers because the fingers' distance and midpoint stay put.
+   */
+  private installTwist(): void {
+    const el = this.renderer.domElement;
+    const touches = new Map<number, { x: number; y: number }>();
+    let angle: number | null = null;
+    const current = () => {
+      const [a, b] = [...touches.values()];
+      return Math.atan2(b.y - a.y, b.x - a.x);
+    };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch') return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      angle = touches.size === 2 ? current() : null;
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!touches.has(e.pointerId)) return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size !== 2 || angle === null) return;
+      const next = current();
+      let d = next - angle;
+      if (d > Math.PI) d -= 2 * Math.PI;
+      if (d < -Math.PI) d += 2 * Math.PI;
+      angle = next;
+      if (!this.controls.enabled || d === 0) return;
+      this.tween = null;
+      this.currentView = null;
+      this.controls.rotateLeft(d * 1.2);
+    });
+    const end = (e: PointerEvent) => {
+      if (touches.delete(e.pointerId)) angle = touches.size === 2 ? current() : null;
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
   }
 
   /* ---------------------------------------------------------------- scene content ---- */
@@ -483,10 +524,6 @@ export class Viewer {
   goTo(name: ViewName, animate = true): void {
     this.currentView = name;
     this.applyPose(this.viewPose(name), animate);
-  }
-
-  resetView(): void {
-    this.goTo(this.initialView);
   }
 
   get view(): ViewName | null {

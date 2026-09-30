@@ -203,15 +203,12 @@ export class App {
     const views = $$<HTMLButtonElement>('.views button');
     for (const b of views) {
       b.addEventListener('click', () => {
-        const v = b.dataset.view!;
-        if (v === 'reset') this.viewer.resetView();
-        else this.viewer.goTo(v as ViewName);
-        const current = v === 'reset' ? 'front' : v;
-        for (const o of views) if (o.dataset.view !== 'reset') o.setAttribute('aria-pressed', String(o.dataset.view === current));
+        this.viewer.goTo(b.dataset.view as ViewName);
+        for (const o of views) o.setAttribute('aria-pressed', String(o === b));
       });
     }
     this.viewer.controls.addEventListener('start', () => {
-      for (const o of views) if (o.dataset.view !== 'reset') o.setAttribute('aria-pressed', 'false');
+      for (const o of views) o.setAttribute('aria-pressed', 'false');
       $('#hint').classList.add('gone');
     });
     window.setTimeout(() => $('#hint').classList.add('gone'), 7000);

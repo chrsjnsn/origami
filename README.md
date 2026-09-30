@@ -36,9 +36,10 @@ the Blender files.
 
 ## Using the site
 
-**Viewing.** Drag to turn the artwork, scroll or pinch to zoom, right-drag or use two fingers to
-move it. *Front*, *Angled* and *Detail* recreate the three Blender cameras; the circular arrow
-resets the camera. The page never scrolls, so touch gestures always go to the artwork.
+**Viewing.** Drag with one finger (or the mouse) or twist two fingers to turn the artwork, scroll
+or pinch to zoom, right-drag or slide two fingers to move it. *Front*, *Angled* and *Detail*
+recreate the three Blender cameras. The page never scrolls, so touch gestures always go to the
+artwork.
 
 **Customize** (the page's address ends in `#customize`, so the browser's back button returns to
 the main page):
@@ -48,8 +49,8 @@ the main page):
 | **Colors** | Pyramids (outside paper), Inside (the nested paper), Board. Each has a set of swatches plus a custom color picker. |
 | **Pattern style** | *Original* (the artwork as made), *Drift*, *Ripple*, *Dunes*, *Crosscurrent*, *Bloom*, *Spiral*. The small previews show each style in your colors. |
 | **Intensity** | Calm to bold: how far the pyramids rise, fall and lean. |
-| **Scale** | Fine to broad: the distance between wave crests. |
-| **Flow** | Straight to swirling: how much the wave fronts bend. |
+| **Scale** | Fine to broad: the distance between wave crests. Broad waves let the tips lean farthest. |
+| **Flow** | Gentle to swirling: how much the wave fronts bend and the leans twist. |
 | **Shuffle** | A new variation of the style (new positions, angles and timing). |
 | **Animate** | Starts the slow, continuous motion and shows the play bar. |
 | **Undo / Redo / Reset** | Step through changes, or go back to the original artwork. |
@@ -63,6 +64,14 @@ visits. **Save image** renders a 3000 × 2000 PNG of the front view. **For Blend
 zip with a `.glb` (File › Import › glTF 2.0) and a script that rebuilds the full scene with
 materials, lights and cameras in your colors (instructions in the zip's README).
 
+### How the patterns are made
+
+Like the original, every style mixes strong areas, where tips reach far over and rise or drop,
+with calmer areas that lean slightly closed and sit a little lower, so the strong areas stand out.
+Wave fronts always bend a little (more with *Flow*), and the lean direction turns gradually across
+the board, so no area is a plain, straight wave. Each pattern is measured and scaled until its
+strongest area reaches the limits below, which keeps every variation bold.
+
 ### Geometry limits
 
 Every variation stays within limits taken from the original artwork, so pyramids are never too
@@ -70,7 +79,9 @@ short, never fall toward the board, never touch their neighbors and never reach 
 border of the board:
 
 * tip height 22 to 76 mm (the original: 27 to 71 mm), resting at 46 mm
-* sideways lean at most 62 mm, and sized to the wave spacing so neighboring tips cannot converge
+* sideways lean up to 66 mm (the original reaches about 69 mm)
+* neighboring tips differ in lean by at most 38 mm (the original: 37.6 mm); where a pattern is
+  steeper, only that spot is eased back, smoothly
 * all tips inside the board's 2-inch border
 
 These limits are part of how the patterns are built. On top of that, after each change the

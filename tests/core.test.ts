@@ -165,6 +165,22 @@ describe('pattern variations', () => {
     expect(maxAbsDiff(sculpture.originalVertices, before)).toBe(0);
   });
 
+  it('every style is bold like the original: far-reaching leans next to calmer areas', () => {
+    for (const style of PATTERN_STYLES) {
+      for (const seed of [1, 2, 3]) {
+        const off = engine.offsets({ style, seed, ...STYLE_DEFAULTS[style] }, 0);
+        const lean = Array.from({ length: sculpture.count }, (_, i) => Math.hypot(off[i * 3], off[i * 3 + 1])).sort((x, y) => x - y);
+        const z = Array.from({ length: sculpture.count }, (_, i) => sculpture.anchors[i * 3 + 2] + off[i * 3 + 2]);
+        // The strongest tips lean far over (the original reaches about 69 mm) ...
+        expect(lean[lean.length - 1]).toBeGreaterThan(40);
+        // ... while a good share of the board stays calm, for contrast.
+        expect(lean[Math.floor(lean.length * 0.2)]).toBeLessThan(22);
+        // Heights use most of the original's range.
+        expect(Math.max(...z) - Math.min(...z)).toBeGreaterThan(30);
+      }
+    }
+  });
+
   it('moves slowly and smoothly when animated', () => {
     for (const style of PATTERN_STYLES) {
       const v: Variation = { style, seed: 11, intensity: 1, scale: 0, flow: 1 };
