@@ -5,6 +5,7 @@ import { buildDesignGlb } from '../src/core/exportGeometry';
 import { lookDesignFile } from '../src/core/exportLook';
 import { readAccessor, readGlb } from '../src/core/glb';
 import { isOriginal, ORIGINAL_COLORS, ORIGINAL_LOOK, PALETTES, sanitizeLook } from '../src/core/look';
+import { FLOATS_PER_SHELL, writeThickShell } from '../src/core/solidify';
 import { validateShells } from '../src/core/validation';
 import {
   LIMITS,
@@ -124,6 +125,25 @@ describe('import', () => {
     tips[a * 3 + 2] = 30;
     const { outer, inner } = sculpture.shellVertices(tips);
     expect(validateShells(sculpture, outer, inner).intersectingPairs).toContainEqual([a, b]);
+  });
+
+  it('keeps the blue base a full paper thickness above the black base, even on the lowest pyramids', () => {
+    // On low pyramids the vertex normals at the base corners point almost sideways; offsetting
+    // along them left the blue base level with or below the black base, and the two flickered.
+    const t = sculpture.data.presentation.innerThicknessMm;
+    const pos = new Float64Array(FLOATS_PER_SHELL);
+    const poses = [sculpture.originalOffsets, ...PATTERN_STYLES.map((style) =>
+      engine.offsets({ style, intensity: 1, scale: 0, flow: 1, seed: 3 }, 17))];
+    let lowest = Infinity;
+    for (const offsets of poses) {
+      const { inner } = sculpture.shellVertices(sculpture.tipsFromOffsets(offsets));
+      for (let i = 0; i < sculpture.count; i++) {
+        writeThickShell(inner, i * 12, sculpture.faces, i * 9, { thickness: t, offset: -1 }, pos, null, 0);
+        // Triangle 1 is the inside (upper) surface of the base face.
+        for (let v = 0; v < 3; v++) lowest = Math.min(lowest, pos[9 + v * 3 + 2] - sculpture.anchors[i * 3 + 2]);
+      }
+    }
+    expect(lowest).toBeGreaterThan(t - 1e-4);
   });
 });
 

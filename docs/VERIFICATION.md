@@ -57,7 +57,7 @@ Before the undertone, ripple and oblique-wave changes, the same straight-run ave
 Across random settings including every slider extreme (40 variations per style), the average is
 now 1.5–1.9% and the worst single measure 8% (the original's worst is 6.7%).
 
-## Model tests (`npm test`: 26 tests pass, 1 opt-in sweep skipped)
+## Model tests (`npm test`: 27 tests pass, 1 opt-in sweep skipped)
 
 Import and topology, the inner rule against the saved .blend, the supporting data files, the
 envelope and border, the geometry check (clean import, crafted crossing found), *Original* showing
@@ -91,6 +91,7 @@ colored materials).
 | Saving | *Save design* stores the look and a thumbnail and lists it; *Save image* gives a 3000 × 2000 PNG of the front view; *For Blender* gives a zip with 7 files (downloads intercepted in the page) |
 | Phone layout (375 × 812) | whole board framed on the main page; customize panel as a bottom sheet that collapses to its header; play bar above it; artwork centered in the free space |
 | Touch (simulated) | one-finger drag turns the artwork; a two-finger clockwise twist of 34° turned it 41° in the same direction as dragging right, with no zoom; the page never scrolls; `touch-action: none` on the canvas |
+| Blue base of low pyramids | the blue base's top surface sits 0.25 mm above the black base on every piece (before: −0.15 to +0.10 mm on low pyramids, so black flickered through the blue); compared in renders of the lowest pyramids before and after |
 | Self-test at extreme settings (Spiral scale 0, Bloom scale 1, Crosscurrent scale 0.3, all at intensity 1 and flow 1) | 0 errors, 0 warnings; bases 0 mm; inner rule 0 mm; GPU vs model 6.1e-5 mm |
 | Rendering cost, 1536 × 1152 buffer (pixel ratio 1.5) | 8.2 ms per frame with the GPU synchronized; pose update while animating 2.0 ms |
 | Production build | `npm run build` succeeds (868 kB JS, 227 kB gzipped) |

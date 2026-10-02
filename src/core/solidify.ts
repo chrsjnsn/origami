@@ -4,7 +4,10 @@
  *
  * Outer shells: offset +1, 0.45 mm (stock extends outward from the design surface).
  * Inner shells: offset -1, 0.25 mm (stock extends inward, so the blue base sits above the
- * black base without moving either design triangle).
+ * black base without moving either design triangle). The inner base corners move straight up by
+ * the full thickness: on low pyramids their vertex normals point almost sideways (the base and
+ * side normals nearly cancel), which left the blue base level with or below the black base, and
+ * the two surfaces flickered through each other.
  *
  * This is presentation only. It never feeds back into the editable tip data.
  */
@@ -73,6 +76,17 @@ export function writeThickShell(
       vn[at * 3] += w * fn[f * 3];
       vn[at * 3 + 1] += w * fn[f * 3 + 1];
       vn[at * 3 + 2] += w * fn[f * 3 + 2];
+    }
+  }
+  if (spec.offset === -1) {
+    // The base is the face pointing most downward; its corners take the base normal.
+    let base = 0;
+    for (let f = 1; f < 3; f++) if (fn[f * 3 + 2] < fn[base * 3 + 2]) base = f;
+    for (let c = 0; c < 3; c++) {
+      const v = faces[fo + base * 3 + c];
+      vn[v * 3] = fn[base * 3];
+      vn[v * 3 + 1] = fn[base * 3 + 1];
+      vn[v * 3 + 2] = fn[base * 3 + 2];
     }
   }
   const t = spec.thickness;
