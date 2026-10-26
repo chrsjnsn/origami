@@ -191,7 +191,10 @@ export class Viewer {
       new THREE.MeshStandardMaterial({ color: linear(bd?.[0] ?? 0.26, bd?.[1] ?? 0.28, bd?.[2] ?? 0.3), roughness: 0.91, metalness: 0 }),
     );
     this.backdrop.position.z = presentation.backdropZMm ?? -6.8;
-    this.backdrop.receiveShadow = true;
+    // The board sits 0.8 mm in front of the wall, so its shadow there is hidden behind it anyway.
+    // Some GPUs (the iOS Simulator's, for one) shade the wall as shadowed wherever the key light's
+    // shadow map reaches, which drew a gray rectangle around the board; the wall takes no shadows.
+    this.backdrop.receiveShadow = false;
     this.backdrop.name = 'Studio backdrop';
     this.scene.add(this.backdrop);
     this.scene.background = linear(0.62, 0.66, 0.72);
